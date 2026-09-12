@@ -23,8 +23,13 @@
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
-        <env name="API_TOKENS" value="testing-token"/>
+        <env name="API_TOKEN_STUDENT" value="testing-student-token"/>
+        <env name="API_TOKEN_SIGNATORY" value="testing-signatory-token"/>
+        <env name="API_TOKEN_ADMIN" value="testing-admin-token"/>
         <env name="AWS_DEFAULT_REGION" value="us-east-1"/>
+        <env name="AWS_COGNITO_USER_POOL_ID" value="us-east-1_test"/>
+        <env name="AWS_COGNITO_CLIENT_ID" value="test-client"/>
+        <env name="AWS_DYNAMODB_TABLE" value="mapua-apex-test"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

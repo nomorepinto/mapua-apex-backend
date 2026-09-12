@@ -1,0 +1,76 @@
+<?php
+
+namespace App\Aws\DynamoDb;
+
+use Illuminate\Support\Str;
+
+final class SignatoryRecords
+{
+    public function __construct(private DynamoDbItems $items) {}
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function list(): array
+    {
+        return $this->items->scan([
+            'FilterExpression' => 'begins_with(PK, :pk) AND PK = SK',
+            'ExpressionAttributeValues' => [
+                ':pk' => ['S' => 'SIGNATORY#'],
+            ],
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function get(string $signatoryId): ?array
+    {
+        $key = DynamoKeys::signatory($signatoryId);
+
+        return $this->items->get($key, $key);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function create(string $name, string $role, string $organizationId): array
+    {
+        $id = (string) Str::uuid();
+
+        return $this->write($id, $name, $role, $organizationId);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function update(string $signatoryId, string $name, string $role, string $organizationId): array
+    {
+        if ($this->get($signatoryId) === null) {
+            abort(404);
+        }
+
+        return $this->write($signatoryId, $name, $role, $organizationId);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function write(string $id, string $name, string $role, string $organizationId): array
+    {
+        $key = DynamoKeys::signatory($id);
+        $item = [
+            'PK' => $key,
+            'SK' => $key,
+            'name' => $name,
+            'role' => Str::lower($role),
+            'organization_id' => DynamoKeys::strip($organizationId, 'ORGANIZATION#'),
+            'GSI4PK' => DynamoKeys::roleIndex($role, $organizationId),
+            'GSI4SK' => $key,
+        ];
+
+        $this->items->put($item);
+
+        return $item;
+    }
+}

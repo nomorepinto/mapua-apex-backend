@@ -29,10 +29,11 @@ return [
     ],
 
     'api' => [
-        'tokens' => array_values(array_filter(array_map(
-            trim(...),
-            explode(',', (string) env('API_TOKENS', '')),
-        ))),
+        'tokens' => [
+            'student' => env('API_TOKEN_STUDENT', ''),
+            'signatory' => env('API_TOKEN_SIGNATORY', ''),
+            'admin' => env('API_TOKEN_ADMIN', ''),
+        ],
     ],
 
     'slack' => [

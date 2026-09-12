@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Auth\CognitoJwtVerifier;
+use App\Auth\JwksCognitoJwtVerifier;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -14,7 +16,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(CognitoJwtVerifier::class, JwksCognitoJwtVerifier::class);
     }
 
     /**
@@ -22,13 +24,35 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        RateLimiter::for('api', function (Request $request): Limit {
+        $limitByCaller = function (Request $request): Limit {
             $token = $request->bearerToken();
+            $apiKey = $request->header('X-Api-Key');
+
             $key = is_string($token) && $token !== ''
                 ? hash('sha256', $token)
-                : $request->ip();
+                : (is_string($apiKey) && $apiKey !== '' ? hash('sha256', $apiKey) : $request->ip());
 
             return Limit::perMinute(60)->by($key);
-        });
+        };
+
+        RateLimiter::for('api', $limitByCaller);
+        RateLimiter::for('student', $limitByCaller);
+        RateLimiter::for('signatory', $limitByCaller);
+        RateLimiter::for('admin', $limitByCaller);
+
+        $writeLimit = function (Request $request): Limit {
+            $token = $request->bearerToken();
+            $apiKey = $request->header('X-Api-Key');
+
+            $key = is_string($token) && $token !== ''
+                ? hash('sha256', $token)
+                : (is_string($apiKey) && $apiKey !== '' ? hash('sha256', $apiKey) : $request->ip());
+
+            return Limit::perMinute(10)->by($key);
+        };
+
+        RateLimiter::for('student-write', $writeLimit);
+        RateLimiter::for('signatory-write', $writeLimit);
+        RateLimiter::for('admin-write', $writeLimit);
     }
 }

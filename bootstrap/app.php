@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AuthenticateApiToken;
+use App\Http\Middleware\AuthenticateCognitoJwt;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -18,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->throttleApi();
         $middleware->alias([
             'api.token' => AuthenticateApiToken::class,
+            'cognito.jwt' => AuthenticateCognitoJwt::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

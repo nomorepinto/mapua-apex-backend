@@ -1,0 +1,99 @@
+<?php
+
+namespace Tests\Feature\Http\Controllers\Api\V1\Signatory;
+
+use Tests\Fakes\InMemoryDynamoDb;
+use Tests\Support\DynamoFixtures;
+use Tests\TestCase;
+
+class SubmissionControllerTest extends TestCase
+{
+    public function test_returns_401_when_student_key_is_used(): void
+    {
+        $this->fakeCognitoJwt([
+            'cognito:groups' => ['signatory'],
+            'custom:signatory_id' => 'adv001',
+        ]);
+
+        $response = $this->withApiKey('student')
+            ->withToken('fake-jwt')
+            ->getJson('/api/v1/signatories/submissions');
+
+        $response->assertUnauthorized();
+    }
+
+    public function test_returns_401_when_signatory_claim_is_missing(): void
+    {
+        $response = $this->withSignatoryAuth([
+            'custom:signatory_id' => '',
+        ])->getJson('/api/v1/signatories/submissions');
+
+        $response->assertUnauthorized();
+    }
+
+    public function test_lists_submissions_on_the_signatory_queue(): void
+    {
+        $db = InMemoryDynamoDb::bind($this);
+        DynamoFixtures::submission($db);
+
+        $response = $this->withSignatoryAuth()->getJson('/api/v1/signatories/submissions');
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.submission_id', 's001');
+    }
+
+    public function test_returns_404_when_the_submission_is_not_on_the_signatory_desk(): void
+    {
+        $db = InMemoryDynamoDb::bind($this);
+        DynamoFixtures::event($db);
+        DynamoFixtures::submission($db, [
+            'current_signatory' => 'SIGNATORY#cdm001',
+            'GSI2PK' => 'SIGNATORY#cdm001',
+        ]);
+
+        $response = $this->withSignatoryAuth()->getJson('/api/v1/signatories/events/e001/submissions/s001');
+
+        $response->assertNotFound();
+    }
+
+    public function test_approve_advances_to_cdm_for_extra_curricular_venue_events(): void
+    {
+        $this->freezeTime();
+        $db = InMemoryDynamoDb::bind($this);
+        DynamoFixtures::event($db);
+        DynamoFixtures::signatory($db, 'adv001', 'adviser');
+        DynamoFixtures::signatory($db, 'cdm001', 'cdm');
+        DynamoFixtures::submission($db);
+
+        $response = $this->withSignatoryAuth()->postJson('/api/v1/signatories/events/e001/submissions/s001/approve');
+
+        $response->assertOk()
+            ->assertJsonPath('data.current_signatory', 'cdm001');
+
+        $stored = $db->find('EVENT#e001', 'SUBMISSION#s001');
+        $this->assertSame('SIGNATORY#cdm001', $stored['GSI2PK'] ?? null);
+        $this->assertNotNull($db->find('SUBMISSION#s001', 'NOTIFICATION#'.now()->utc()->format('Y-m-d\TH:i:s\Z')));
+    }
+
+    public function test_deny_requires_a_comment_and_drops_the_gsi2_queue_entry(): void
+    {
+        $db = InMemoryDynamoDb::bind($this);
+        DynamoFixtures::event($db);
+        DynamoFixtures::submission($db);
+
+        $this->withSignatoryAuth()
+            ->postJson('/api/v1/signatories/events/e001/submissions/s001/deny', [])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['comment']);
+
+        $response = $this->withSignatoryAuth()->postJson('/api/v1/signatories/events/e001/submissions/s001/deny', [
+            'comment' => 'Budget is incomplete.',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.status', 'denied');
+
+        $stored = $db->find('EVENT#e001', 'SUBMISSION#s001');
+        $this->assertArrayNotHasKey('GSI2PK', $stored ?? []);
+    }
+}

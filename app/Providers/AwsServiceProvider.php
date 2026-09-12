@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Aws\AwsClientFactory;
+use App\Aws\DynamoDb\DynamoDbItems;
 use Aws\DynamoDb\DynamoDbClient;
 use Aws\S3\S3Client;
 use Aws\Ses\SesClient;
@@ -22,6 +23,10 @@ class AwsServiceProvider extends ServiceProvider
 
         $this->app->singleton(DynamoDbClient::class, function (Application $app): DynamoDbClient {
             return new DynamoDbClient($app->make(AwsClientFactory::class)->clientOptions('dynamodb'));
+        });
+
+        $this->app->singleton(DynamoDbItems::class, function (Application $app): DynamoDbItems {
+            return new DynamoDbItems($app->make(DynamoDbClient::class));
         });
 
         $this->app->singleton(S3Client::class, function (Application $app): S3Client {

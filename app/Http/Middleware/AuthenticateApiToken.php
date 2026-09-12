@@ -13,22 +13,19 @@ class AuthenticateApiToken
      *
      * @param  Closure(Request): (Response)  $next
      */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next, string $role): Response
     {
-        $token = $request->bearerToken();
+        $expected = config('services.api.tokens.'.$role);
+        $token = $request->header('X-Api-Key');
 
-        if (! is_string($token) || $token === '') {
+        if (! is_string($expected) || $expected === '' || ! is_string($token) || $token === '') {
             abort(401, 'Unauthenticated.');
         }
 
-        $hashedToken = hash('sha256', $token);
-
-        foreach (config('services.api.tokens', []) as $validToken) {
-            if (hash_equals(hash('sha256', (string) $validToken), $hashedToken)) {
-                return $next($request);
-            }
+        if (! hash_equals(hash('sha256', $expected), hash('sha256', $token))) {
+            abort(401, 'Unauthenticated.');
         }
 
-        abort(401, 'Unauthenticated.');
+        return $next($request);
     }
 }
