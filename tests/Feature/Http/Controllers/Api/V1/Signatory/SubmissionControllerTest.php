@@ -22,6 +22,28 @@ class SubmissionControllerTest extends TestCase
         $response->assertUnauthorized();
     }
 
+    public function test_returns_401_when_admin_omits_signatory(): void
+    {
+        InMemoryDynamoDb::bind($this);
+
+        $response = $this->withAdminAuth()->getJson('/api/v1/signatories/submissions');
+
+        $response->assertUnauthorized();
+    }
+
+    public function test_lists_the_queue_when_admin_sends_a_signatory_header(): void
+    {
+        $db = InMemoryDynamoDb::bind($this);
+        DynamoFixtures::submission($db);
+
+        $response = $this->withAdminAuth()
+            ->withHeaders(['X-Signatory-Id' => 'adv001'])
+            ->getJson('/api/v1/signatories/submissions');
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.submission_id', 's001');
+    }
+
     public function test_returns_401_when_signatory_claim_is_missing(): void
     {
         $response = $this->withSignatoryAuth([

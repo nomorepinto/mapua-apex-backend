@@ -15,17 +15,27 @@ class AuthenticateApiToken
      */
     public function handle(Request $request, Closure $next, string $role): Response
     {
-        $expected = config('services.api.tokens.'.$role);
         $token = $request->header('X-Api-Key');
 
-        if (! is_string($expected) || $expected === '' || ! is_string($token) || $token === '') {
+        if (! is_string($token) || $token === '') {
             abort(401, 'Unauthenticated.');
         }
 
-        if (! hash_equals(hash('sha256', $expected), hash('sha256', $token))) {
-            abort(401, 'Unauthenticated.');
+        if ($this->matches($token, $role) || ($role !== 'admin' && $this->matches($token, 'admin'))) {
+            return $next($request);
         }
 
-        return $next($request);
+        abort(401, 'Unauthenticated.');
+    }
+
+    private function matches(string $token, string $role): bool
+    {
+        $expected = config('services.api.tokens.'.$role);
+
+        if (! is_string($expected) || $expected === '') {
+            return false;
+        }
+
+        return hash_equals(hash('sha256', $expected), hash('sha256', $token));
     }
 }

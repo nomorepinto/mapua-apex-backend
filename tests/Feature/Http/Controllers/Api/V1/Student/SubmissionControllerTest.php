@@ -29,6 +29,42 @@ class SubmissionControllerTest extends TestCase
         $response->assertUnauthorized();
     }
 
+    public function test_returns_401_when_admin_omits_organization(): void
+    {
+        InMemoryDynamoDb::bind($this);
+
+        $response = $this->withAdminAuth()->getJson('/api/v1/students/submissions');
+
+        $response->assertUnauthorized();
+    }
+
+    public function test_lists_submissions_when_admin_sends_an_organization_header(): void
+    {
+        $db = InMemoryDynamoDb::bind($this);
+        DynamoFixtures::event($db);
+        DynamoFixtures::submission($db);
+
+        $response = $this->withAdminAuth()
+            ->withHeaders(['X-Organization-Id' => 'a1b2'])
+            ->getJson('/api/v1/students/submissions');
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.submission_id', 's001');
+    }
+
+    public function test_ignores_organization_header_for_a_student_jwt(): void
+    {
+        $db = InMemoryDynamoDb::bind($this);
+        DynamoFixtures::event($db, org: 'other-org');
+        DynamoFixtures::submission($db);
+
+        $response = $this->withStudentAuth()
+            ->withHeaders(['X-Organization-Id' => 'other-org'])
+            ->getJson('/api/v1/students/events/e001/submissions/s001');
+
+        $response->assertNotFound();
+    }
+
     public function test_returns_401_when_jwt_is_missing(): void
     {
         $this->fakeCognitoJwt();

@@ -50,4 +50,12 @@ class PingEndpointTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('ok', true);
     }
+
+    public function test_returns_ok_when_admin_key_is_used(): void
+    {
+        $response = $this->withApiKey('admin')->getJson('/api/ping');
+
+        $response->assertOk()
+            ->assertJsonPath('ok', true);
+    }
 }

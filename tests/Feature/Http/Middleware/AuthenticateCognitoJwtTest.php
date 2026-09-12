@@ -70,6 +70,20 @@ class AuthenticateCognitoJwtTest extends TestCase
         $response->assertUnauthorized();
     }
 
+    public function test_allows_admin_group_on_a_student_route(): void
+    {
+        $this->fakeCognitoJwt([
+            'cognito:groups' => ['admin'],
+            'custom:organization_id' => '',
+        ]);
+
+        $response = $this->withApiKey('admin')
+            ->withToken('fake-jwt')
+            ->getJson('/api/_test/cognito');
+
+        $response->assertOk();
+    }
+
     public function test_returns_503_when_jwks_is_unavailable(): void
     {
         $this->fakeCognitoJwt(jwksUnavailable: true);

@@ -36,13 +36,17 @@ class AuthenticateCognitoJwt
             abort(503, 'Identity provider unavailable.');
         }
 
-        if (is_string($role) && $role !== '') {
-            $groups = $claims['cognito:groups'] ?? null;
+        $groups = $claims['cognito:groups'] ?? null;
+        $isAdmin = is_array($groups) && in_array('admin', $groups, true);
 
-            if (is_array($groups) && ! in_array($role, $groups, true)) {
+        if (is_string($role) && $role !== '') {
+            if (is_array($groups) && ! in_array($role, $groups, true) && ! $isAdmin) {
                 abort(401, 'Unauthenticated.');
             }
         }
+
+        $request->attributes->set('cognito.is_admin', $isAdmin);
+        Context::addHidden('cognito.is_admin', $isAdmin);
 
         $organizationId = $claims['custom:organization_id'] ?? $claims['organization_id'] ?? null;
 
@@ -50,7 +54,7 @@ class AuthenticateCognitoJwt
             $organizationId = Str::chopStart($organizationId, 'ORGANIZATION#');
             $request->attributes->set('cognito.organization_id', $organizationId);
             Context::addHidden('cognito.organization_id', $organizationId);
-        } elseif ($role === 'student') {
+        } elseif ($role === 'student' && ! $isAdmin) {
             abort(401, 'Unauthenticated.');
         }
 
@@ -67,7 +71,7 @@ class AuthenticateCognitoJwt
             $signatoryId = Str::chopStart($signatoryId, 'SIGNATORY#');
             $request->attributes->set('cognito.signatory_id', $signatoryId);
             Context::addHidden('cognito.signatory_id', $signatoryId);
-        } elseif ($role === 'signatory') {
+        } elseif ($role === 'signatory' && ! $isAdmin) {
             abort(401, 'Unauthenticated.');
         }
 

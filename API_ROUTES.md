@@ -9,9 +9,10 @@ X-Api-Key: <API_TOKEN_STUDENT | API_TOKEN_SIGNATORY | API_TOKEN_ADMIN>
 Authorization: Bearer <Cognito JWT>
 ```
 
+- Use the matching role key, **or** `API_TOKEN_ADMIN` on any route (including student and signatory).
 - Student JWT needs `custom:organization_id`.
 - Signatory JWT needs `custom:signatory_id`.
-- Admin JWT does not need an org claim.
+- Admin JWT (`cognito:groups` includes `admin`) does not need those claims. Student and signatory routes still scope by org/desk: send `X-Organization-Id` and/or `X-Signatory-Id` when the JWT does not already carry them.
 
 Wrong or missing key/JWT → `401`. Over limit → `429`.
 

@@ -3,28 +3,36 @@
 namespace App\Http;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 final class CognitoIdentity
 {
     public static function organizationId(Request $request): string
     {
-        $organizationId = $request->attributes->get('cognito.organization_id');
-
-        if (! is_string($organizationId) || $organizationId === '') {
-            abort(401, 'Unauthenticated.');
-        }
-
-        return $organizationId;
+        return self::resolveId($request, 'cognito.organization_id', 'X-Organization-Id', 'ORGANIZATION#');
     }
 
     public static function signatoryId(Request $request): string
     {
-        $signatoryId = $request->attributes->get('cognito.signatory_id');
+        return self::resolveId($request, 'cognito.signatory_id', 'X-Signatory-Id', 'SIGNATORY#');
+    }
 
-        if (! is_string($signatoryId) || $signatoryId === '') {
-            abort(401, 'Unauthenticated.');
+    private static function resolveId(Request $request, string $attribute, string $header, string $prefix): string
+    {
+        $fromJwt = $request->attributes->get($attribute);
+
+        if (is_string($fromJwt) && $fromJwt !== '') {
+            return $fromJwt;
         }
 
-        return $signatoryId;
+        if ($request->attributes->get('cognito.is_admin') === true) {
+            $fromHeader = $request->header($header);
+
+            if (is_string($fromHeader) && $fromHeader !== '') {
+                return Str::chopStart($fromHeader, $prefix);
+            }
+        }
+
+        abort(401, 'Unauthenticated.');
     }
 }
