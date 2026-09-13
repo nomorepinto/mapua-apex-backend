@@ -91,12 +91,18 @@ final class DynamoDbItems
     /**
      * @param  array<string, mixed>  $item
      */
-    public function put(array $item): void
+    public function put(array $item, ?string $conditionExpression = null): void
     {
-        $this->dynamo->putItem([
+        $params = [
             'TableName' => $this->table(),
             'Item' => $this->marshaller->marshal($item),
-        ]);
+        ];
+
+        if ($conditionExpression !== null) {
+            $params['ConditionExpression'] = $conditionExpression;
+        }
+
+        $this->dynamo->putItem($params);
     }
 
     /**

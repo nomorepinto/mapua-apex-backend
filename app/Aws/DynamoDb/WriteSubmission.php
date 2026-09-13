@@ -27,8 +27,8 @@ final class WriteSubmission
         $sentAt = DynamoKeys::now();
         $submissionId = (string) Str::uuid();
 
-        $item = $this->submissionItem($eventId, $submissionId, $payload, $currentSignatory, $sentAt, 'pending');
-        $this->items->put($item);
+        $item = $this->submissionItem($organizationId, $eventId, $submissionId, $payload, $currentSignatory, $sentAt, 'pending');
+        $this->items->put($item, 'attribute_not_exists(PK)');
 
         return $item;
     }
@@ -50,7 +50,7 @@ final class WriteSubmission
         $currentSignatory = DynamoKeys::signatory($signatoryIds[0]);
         $sentAt = DynamoKeys::now();
 
-        $item = $this->submissionItem($eventId, $submissionId, $payload, $currentSignatory, $sentAt, 'pending');
+        $item = $this->submissionItem($organizationId, $eventId, $submissionId, $payload, $currentSignatory, $sentAt, 'pending');
         $this->items->put($item);
 
         return $item;
@@ -85,6 +85,7 @@ final class WriteSubmission
      * @return array<string, mixed>
      */
     private function submissionItem(
+        string $organizationId,
         string $eventId,
         string $submissionId,
         array $payload,
@@ -99,6 +100,8 @@ final class WriteSubmission
             'sent_at' => $sentAt,
             'status' => $status,
             'current_signatory' => $currentSignatory,
+            'GSI1PK' => DynamoKeys::organization($organizationId),
+            'GSI1SK' => DynamoKeys::submission($submissionId),
             'GSI2PK' => $currentSignatory,
             'GSI2SK' => $sentAt,
             'activity_classification' => $payload['activity_classification'],
