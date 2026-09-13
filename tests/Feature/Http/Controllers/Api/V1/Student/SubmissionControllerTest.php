@@ -65,6 +65,18 @@ class SubmissionControllerTest extends TestCase
         $response->assertNotFound();
     }
 
+    public function test_returns_401_when_student_omits_organization_claim_even_with_header(): void
+    {
+        InMemoryDynamoDb::bind($this);
+
+        $response = $this->withStudentAuth([
+            'custom:organization_id' => '',
+        ])->withHeaders(['X-Organization-Id' => 'a1b2'])
+            ->getJson('/api/v1/students/submissions');
+
+        $response->assertUnauthorized();
+    }
+
     public function test_returns_401_when_jwt_is_missing(): void
     {
         $this->fakeCognitoJwt();
@@ -95,6 +107,25 @@ class SubmissionControllerTest extends TestCase
             ->assertJsonPath('data.0.submission_type', 'saaf')
             ->assertJsonPath('data.0.current_signatory', 'adv001')
             ->assertJsonPath('data.0.activity_details.title_and_nature', 'Hack Night: Intro to Web Dev');
+    }
+
+    public function test_lists_only_submissions_for_the_jwt_organization(): void
+    {
+        $db = InMemoryDynamoDb::bind($this);
+        DynamoFixtures::event($db);
+        DynamoFixtures::submission($db);
+        DynamoFixtures::event($db, org: 'other-org', event: 'e002');
+        DynamoFixtures::submission($db, [
+            'PK' => 'EVENT#e002',
+            'SK' => 'SUBMISSION#s002',
+        ]);
+
+        $response = $this->withStudentAuth()->getJson('/api/v1/students/submissions');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.event_id', 'e001')
+            ->assertJsonPath('data.0.submission_id', 's001');
     }
 
     public function test_returns_an_empty_collection_when_the_organization_has_no_submissions(): void

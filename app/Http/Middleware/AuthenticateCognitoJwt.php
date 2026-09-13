@@ -31,7 +31,7 @@ class AuthenticateCognitoJwt
         try {
             $claims = $this->verifier->verify($jwt);
         } catch (InvalidCognitoJwt $e) {
-            abort(401, 'Unauthenticated: Invalid Cognito token (' . $e->getMessage() . ').');
+            abort(401, 'Unauthenticated: Invalid Cognito token ('.$e->getMessage().').');
         } catch (CognitoJwksUnavailable) {
             abort(503, 'Identity provider unavailable.');
         }
@@ -48,20 +48,17 @@ class AuthenticateCognitoJwt
         $request->attributes->set('cognito.is_admin', $isAdmin);
         Context::addHidden('cognito.is_admin', $isAdmin);
 
-        $organizationId = $claims['custom:organization_id'] ?? $claims['organization_id'] ?? null;
-
-        if (is_string($organizationId) && $organizationId !== '') {
-            $organizationId = Str::chopStart($organizationId, 'ORGANIZATION#');
-            $request->attributes->set('cognito.organization_id', $organizationId);
-            Context::addHidden('cognito.organization_id', $organizationId);
-        } elseif ($request->header('X-Organization-Id')) {
-            $orgHeader = Str::chopStart($request->header('X-Organization-Id'), 'ORGANIZATION#');
-            $request->attributes->set('cognito.organization_id', $orgHeader);
-            Context::addHidden('cognito.organization_id', $orgHeader);
-        } elseif ($role === 'student') {
-            $request->attributes->set('cognito.organization_id', 'org-001');
-            Context::addHidden('cognito.organization_id', 'org-001');
-        }
+        $this->attachScopedId(
+            $request,
+            $claims,
+            ['custom:organization_id', 'organization_id'],
+            'X-Organization-Id',
+            'ORGANIZATION#',
+            'cognito.organization_id',
+            'student',
+            $role,
+            $isAdmin,
+        );
 
         $sub = $claims['sub'] ?? null;
 
@@ -70,21 +67,77 @@ class AuthenticateCognitoJwt
             Context::addHidden('cognito.sub', $sub);
         }
 
-        $signatoryId = $claims['custom:signatory_id'] ?? null;
-
-        if (is_string($signatoryId) && $signatoryId !== '') {
-            $signatoryId = Str::chopStart($signatoryId, 'SIGNATORY#');
-            $request->attributes->set('cognito.signatory_id', $signatoryId);
-            Context::addHidden('cognito.signatory_id', $signatoryId);
-        } elseif ($request->header('X-Signatory-Id')) {
-            $sigHeader = Str::chopStart($request->header('X-Signatory-Id'), 'SIGNATORY#');
-            $request->attributes->set('cognito.signatory_id', $sigHeader);
-            Context::addHidden('cognito.signatory_id', $sigHeader);
-        } elseif ($role === 'signatory') {
-            $request->attributes->set('cognito.signatory_id', 'sig-010');
-            Context::addHidden('cognito.signatory_id', 'sig-010');
-        }
+        $this->attachScopedId(
+            $request,
+            $claims,
+            ['custom:signatory_id', 'signatory_id'],
+            'X-Signatory-Id',
+            'SIGNATORY#',
+            'cognito.signatory_id',
+            'signatory',
+            $role,
+            $isAdmin,
+        );
 
         return $next($request);
+    }
+
+    /**
+     * @param  array<string, mixed>  $claims
+     * @param  list<string>  $claimKeys
+     */
+    private function attachScopedId(
+        Request $request,
+        array $claims,
+        array $claimKeys,
+        string $header,
+        string $prefix,
+        string $attribute,
+        string $requiredForRole,
+        ?string $role,
+        bool $isAdmin,
+    ): void {
+        $value = $this->firstNonEmptyClaim($claims, $claimKeys);
+
+        if ($value !== null) {
+            $value = Str::chopStart($value, $prefix);
+            $request->attributes->set($attribute, $value);
+            Context::addHidden($attribute, $value);
+
+            return;
+        }
+
+        if ($isAdmin) {
+            $fromHeader = $request->header($header);
+
+            if (is_string($fromHeader) && $fromHeader !== '') {
+                $fromHeader = Str::chopStart($fromHeader, $prefix);
+                $request->attributes->set($attribute, $fromHeader);
+                Context::addHidden($attribute, $fromHeader);
+            }
+
+            return;
+        }
+
+        if ($role === $requiredForRole) {
+            abort(401, "Unauthenticated: Missing {$claimKeys[0]} in Cognito token.");
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $claims
+     * @param  list<string>  $claimKeys
+     */
+    private function firstNonEmptyClaim(array $claims, array $claimKeys): ?string
+    {
+        foreach ($claimKeys as $key) {
+            $value = $claims[$key] ?? null;
+
+            if (is_string($value) && $value !== '') {
+                return $value;
+            }
+        }
+
+        return null;
     }
 }

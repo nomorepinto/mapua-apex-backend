@@ -23,11 +23,6 @@ class AuthenticateApiToken
             }
         }
 
-        // Also allow requests authenticated via Cognito Bearer JWT
-        if ($request->bearerToken()) {
-            return $next($request);
-        }
-
         abort(401, 'Unauthenticated.');
     }
 

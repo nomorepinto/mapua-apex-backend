@@ -53,6 +53,20 @@ class SubmissionControllerTest extends TestCase
         $response->assertUnauthorized();
     }
 
+    public function test_lists_submissions_when_signatory_id_claim_has_no_custom_prefix(): void
+    {
+        $db = InMemoryDynamoDb::bind($this);
+        DynamoFixtures::submission($db);
+
+        $response = $this->withSignatoryAuth([
+            'custom:signatory_id' => '',
+            'signatory_id' => 'adv001',
+        ])->getJson('/api/v1/signatories/submissions');
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.submission_id', 's001');
+    }
+
     public function test_lists_submissions_on_the_signatory_queue(): void
     {
         $db = InMemoryDynamoDb::bind($this);

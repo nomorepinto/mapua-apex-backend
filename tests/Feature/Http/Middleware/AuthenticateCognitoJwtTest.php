@@ -112,4 +112,19 @@ class AuthenticateCognitoJwtTest extends TestCase
                 'signatory_id' => 'adv001',
             ]);
     }
+
+    public function test_attaches_signatory_id_from_unprefixed_claim(): void
+    {
+        $this->fakeCognitoJwt([
+            'custom:signatory_id' => '',
+            'signatory_id' => 'SIGNATORY#adv001',
+        ]);
+
+        $response = $this->withApiKey()
+            ->withToken('fake-jwt')
+            ->getJson('/api/_test/cognito');
+
+        $response->assertOk()
+            ->assertJsonPath('signatory_id', 'adv001');
+    }
 }
