@@ -1,4 +1,4 @@
-FROM php:8.3-cli
+FROM php:8.4-cli
 
 # Install system dependencies and PHP extensions
 RUN apt-get update && apt-get install -y \
@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     libxml2-dev \
     libpng-dev \
+    libicu-dev \
     && docker-php-ext-install \
     zip \
     mbstring \
@@ -16,6 +17,8 @@ RUN apt-get update && apt-get install -y \
     xml \
     pdo \
     pdo_mysql \
+    intl \
+    pcntl \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Composer
