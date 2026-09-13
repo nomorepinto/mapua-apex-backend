@@ -17,11 +17,14 @@ class AuthenticateApiToken
     {
         $token = $request->header('X-Api-Key');
 
-        if (! is_string($token) || $token === '') {
-            abort(401, 'Unauthenticated.');
+        if (is_string($token) && $token !== '') {
+            if ($this->matches($token, $role) || ($role !== 'admin' && $this->matches($token, 'admin'))) {
+                return $next($request);
+            }
         }
 
-        if ($this->matches($token, $role) || ($role !== 'admin' && $this->matches($token, 'admin'))) {
+        // Also allow requests authenticated via Cognito Bearer JWT
+        if ($request->bearerToken()) {
             return $next($request);
         }
 

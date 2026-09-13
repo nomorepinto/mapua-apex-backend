@@ -19,11 +19,12 @@ final class WriteSubmission
      */
     public function create(string $organizationId, array $payload): array
     {
+        $signatoryIds = $this->sequence->signatoryIds($organizationId, $payload);
+        $currentSignatory = DynamoKeys::signatory($signatoryIds[0]);
+
         $eventId = (string) $payload['event_id'];
         $this->ensureEvent($eventId, $organizationId);
 
-        $signatoryIds = $this->sequence->signatoryIds($organizationId, $payload);
-        $currentSignatory = DynamoKeys::signatory($signatoryIds[0]);
         $sentAt = DynamoKeys::now();
         $submissionId = (string) Str::uuid();
 
