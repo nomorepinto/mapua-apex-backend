@@ -33,6 +33,6 @@ final class CognitoIdentity
             }
         }
 
-        abort(401, 'Unauthenticated.');
+        abort(401, "Unauthenticated: Missing {$attribute} in Cognito claims or {$header} request header.");
     }
 }

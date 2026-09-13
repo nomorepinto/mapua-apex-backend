@@ -25,13 +25,13 @@ class AuthenticateCognitoJwt
         $jwt = $request->bearerToken();
 
         if (! is_string($jwt) || $jwt === '') {
-            abort(401, 'Unauthenticated.');
+            abort(401, 'Unauthenticated: Bearer token is missing.');
         }
 
         try {
             $claims = $this->verifier->verify($jwt);
-        } catch (InvalidCognitoJwt) {
-            abort(401, 'Unauthenticated.');
+        } catch (InvalidCognitoJwt $e) {
+            abort(401, 'Unauthenticated: Invalid Cognito token (' . $e->getMessage() . ').');
         } catch (CognitoJwksUnavailable) {
             abort(503, 'Identity provider unavailable.');
         }
@@ -41,7 +41,7 @@ class AuthenticateCognitoJwt
 
         if (is_string($role) && $role !== '') {
             if (is_array($groups) && ! in_array($role, $groups, true) && ! $isAdmin) {
-                abort(401, 'Unauthenticated.');
+                abort(401, "Unauthenticated: User is not in the required '$role' or 'admin' Cognito group.");
             }
         }
 
@@ -55,7 +55,7 @@ class AuthenticateCognitoJwt
             $request->attributes->set('cognito.organization_id', $organizationId);
             Context::addHidden('cognito.organization_id', $organizationId);
         } elseif ($role === 'student' && ! $isAdmin) {
-            abort(401, 'Unauthenticated.');
+            abort(401, 'Unauthenticated: Missing custom:organization_id attribute in Cognito token.');
         }
 
         $sub = $claims['sub'] ?? null;

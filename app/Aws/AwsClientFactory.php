@@ -45,6 +45,13 @@ final class AwsClientFactory
             $options['use_path_style_endpoint'] = true;
         }
 
+        $env = env('APP_ENV', 'production');
+        if (in_array($env, ['local', 'testing', 'dev'], true)) {
+            $options['http'] = [
+                'verify' => false,
+            ];
+        }
+
         return $options;
     }
 

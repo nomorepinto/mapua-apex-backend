@@ -64,8 +64,13 @@ final class JwksCognitoJwtVerifier implements CognitoJwtVerifier
 
         try {
             $jwks = Cache::remember('cognito.jwks.'.$poolId, 3600, function () use ($url): array {
-                $payload = Http::connectTimeout(3)
-                    ->timeout(5)
+                $http = Http::connectTimeout(3)->timeout(5);
+
+                if (app()->environment('local', 'testing')) {
+                    $http = $http->withoutVerifying();
+                }
+
+                $payload = $http
                     ->retry([100, 500], 0, fn (Throwable $exception): bool => $exception instanceof ConnectionException)
                     ->get($url)
                     ->throw()
