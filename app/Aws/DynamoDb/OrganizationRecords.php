@@ -9,7 +9,7 @@ final class OrganizationRecords
     /**
      * @var list<string>
      */
-    private const DESK_ORDER = ['adviser', 'cdm', 'dean'];
+    private const DESK_ORDER = ['adviser', 'dean', 'osaar', 'cdm', 'admin'];
 
     public function __construct(private DynamoDbItems $items) {}
 

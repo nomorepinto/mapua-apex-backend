@@ -18,7 +18,7 @@ class UpdateSignatoryRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:150'],
-            'role' => ['required', 'in:adviser,cdm,dean'],
+            'role' => ['required', 'in:adviser,cdm,dean,osaar,admin'],
             'department' => ['exclude_unless:role,dean', 'nullable', 'string', 'max:32'],
         ];
     }

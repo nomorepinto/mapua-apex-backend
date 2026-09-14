@@ -72,6 +72,38 @@ class SignatoryControllerTest extends TestCase
         $this->assertSame('SOIT', $stored['department'] ?? null);
     }
 
+    public function test_creates_osaar_and_admin_signatories(): void
+    {
+        $db = InMemoryDynamoDb::bind($this);
+
+        $osaar = $this->withAdminAuth()->postJson('/api/v1/admins/signatories', [
+            'name' => 'OSAAR Officer',
+            'role' => 'osaar',
+        ]);
+
+        $osaar->assertCreated()
+            ->assertJsonPath('data.role', 'osaar')
+            ->assertJsonPath('data.department', null);
+
+        $osaarId = $osaar->json('data.signatory_id');
+        $this->assertIsString($osaarId);
+        $storedOsaar = $db->find('SIGNATORY#'.$osaarId, 'SIGNATORY#'.$osaarId);
+        $this->assertSame('ROLE#OSAAR', $storedOsaar['GSI4PK'] ?? null);
+
+        $admin = $this->withAdminAuth()->postJson('/api/v1/admins/signatories', [
+            'name' => 'Admin Signatory',
+            'role' => 'admin',
+        ]);
+
+        $admin->assertCreated()
+            ->assertJsonPath('data.role', 'admin');
+
+        $adminId = $admin->json('data.signatory_id');
+        $this->assertIsString($adminId);
+        $storedAdmin = $db->find('SIGNATORY#'.$adminId, 'SIGNATORY#'.$adminId);
+        $this->assertSame('ROLE#ADMIN', $storedAdmin['GSI4PK'] ?? null);
+    }
+
     public function test_returns_422_when_the_role_is_invalid(): void
     {
         InMemoryDynamoDb::bind($this);

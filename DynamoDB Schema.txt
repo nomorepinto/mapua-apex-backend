@@ -79,14 +79,14 @@ SIGNATORY
 PK: SIGNATORY#uuid
 SK: SIGNATORY#uuid
 name: string
-role: "adviser" | "cdm" | "dean"
+role: "adviser" | "cdm" | "dean" | "osaar" | "admin"
 department: string (deans only, e.g. SOIT)
-GSI4PK: ROLE#ADVISER | ROLE#CDM | ROLE#DEAN | ROLE#DEAN#{DEPARTMENT}
+GSI4PK: ROLE#ADVISER | ROLE#CDM | ROLE#DEAN | ROLE#DEAN#{DEPARTMENT} | ROLE#OSAAR | ROLE#ADMIN
 GSI4SK: SIGNATORY#uuid
 
 A SIGNATORY item is the person. It has no organization_id.
-Who occupies adviser / CDM / dean for an org is ORGANIZATION.signatories.
-GSI4 is the role index, not an org assignment. Adviser and CDM are ROLE#{ROLE}.
+Who occupies a desk for an org is ORGANIZATION.signatories.
+GSI4 is the role index, not an org assignment. ROLE#{ROLE} for adviser, cdm, osaar, admin.
 Deans may add a department suffix: ROLE#DEAN#SOIT.
 
 Other items copy the signatory id; they do not join back to SIGNATORY:
