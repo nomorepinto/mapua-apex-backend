@@ -19,6 +19,7 @@ class SignatoryResource extends JsonResource
             'signatory_id' => DynamoKeys::strip($item['PK'] ?? null, 'SIGNATORY#'),
             'name' => $item['name'] ?? null,
             'role' => $item['role'] ?? null,
+            'department' => $item['department'] ?? null,
             'organization_id' => $item['organization_id'] ?? null,
         ];
     }

@@ -34,41 +34,57 @@ final class SignatoryRecords
     /**
      * @return array<string, mixed>
      */
-    public function create(string $name, string $role): array
+    public function create(string $name, string $role, ?string $department = null): array
     {
-        return $this->write((string) Str::uuid(), $name, $role);
+        return $this->write((string) Str::uuid(), $name, $role, $department);
     }
 
     /**
      * @return array<string, mixed>
      */
-    public function update(string $signatoryId, string $name, string $role): array
+    public function update(string $signatoryId, string $name, string $role, ?string $department = null): array
     {
         if ($this->get($signatoryId) === null) {
             abort(404);
         }
 
-        return $this->write($signatoryId, $name, $role);
+        return $this->write($signatoryId, $name, $role, $department);
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function write(string $id, string $name, string $role): array
+    private function write(string $id, string $name, string $role, ?string $department = null): array
     {
         $role = Str::lower($role);
+        $department = $this->deanDepartment($role, $department);
         $key = DynamoKeys::signatory($id);
         $item = [
             'PK' => $key,
             'SK' => $key,
             'name' => $name,
             'role' => $role,
-            'GSI4PK' => DynamoKeys::roleIndex($role),
+            'GSI4PK' => DynamoKeys::roleIndex($role, $department),
             'GSI4SK' => $key,
         ];
+
+        if ($department !== null) {
+            $item['department'] = $department;
+        }
 
         $this->items->put($item);
 
         return $item;
+    }
+
+    private function deanDepartment(string $role, ?string $department): ?string
+    {
+        if ($role !== 'dean' || ! is_string($department)) {
+            return null;
+        }
+
+        $department = Str::upper(trim($department));
+
+        return $department === '' ? null : $department;
     }
 }

@@ -20,7 +20,7 @@ class SignatoryController extends Controller
     public function store(StoreSignatoryRequest $request, SignatoryRecords $signatories): JsonResponse
     {
         $validated = $request->validated();
-        $item = $signatories->create($validated['name'], $validated['role']);
+        $item = $signatories->create($validated['name'], $validated['role'], $validated['department'] ?? null);
 
         return (new SignatoryResource($item))->response()->setStatusCode(201);
     }
@@ -36,6 +36,7 @@ class SignatoryController extends Controller
             $signatory,
             $validated['name'],
             $validated['role'],
+            $validated['department'] ?? null,
         ));
     }
 }

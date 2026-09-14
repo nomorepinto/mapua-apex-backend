@@ -202,7 +202,7 @@ json
   "PK": "SIGNATORY#adv001",
   "SK": "SIGNATORY#adv001",
   "name": "Prof. Juan Dela Cruz",
-  "GSI4PK": "ROLE#ADVISER",
+  "GSI4PK": "ROLE#ADVISER", (ONLY FOR DEANS -> "ROLE#DEAN#SOIT" <- SOIT IS A DEPARTMENT)
   "GSI4SK": "SIGNATORY#adv001"
 }
 APPEALS

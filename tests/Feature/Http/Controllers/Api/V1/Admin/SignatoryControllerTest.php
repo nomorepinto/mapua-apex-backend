@@ -32,6 +32,7 @@ class SignatoryControllerTest extends TestCase
 
         $response->assertCreated()
             ->assertJsonPath('data.role', 'adviser')
+            ->assertJsonPath('data.department', null)
             ->assertJsonPath('data.organization_id', null);
 
         $id = $response->json('data.signatory_id');
@@ -43,9 +44,32 @@ class SignatoryControllerTest extends TestCase
         $this->assertSame('ROLE#ADVISER', $stored['GSI4PK'] ?? null);
         $this->assertSame('SIGNATORY#'.$id, $stored['GSI4SK'] ?? null);
         $this->assertArrayNotHasKey('organization_id', $stored);
+        $this->assertArrayNotHasKey('department', $stored);
 
         $organization = $db->find('ORGANIZATION#a1b2', 'ORGANIZATION#a1b2');
         $this->assertSame([], $organization['signatories'] ?? null);
+    }
+
+    public function test_creates_a_dean_with_a_department_role_index(): void
+    {
+        $db = InMemoryDynamoDb::bind($this);
+
+        $response = $this->withAdminAuth()->postJson('/api/v1/admins/signatories', [
+            'name' => 'Dean Maria Santos',
+            'role' => 'dean',
+            'department' => 'soit',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.role', 'dean')
+            ->assertJsonPath('data.department', 'SOIT');
+
+        $id = $response->json('data.signatory_id');
+        $this->assertIsString($id);
+
+        $stored = $db->find('SIGNATORY#'.$id, 'SIGNATORY#'.$id);
+        $this->assertSame('ROLE#DEAN#SOIT', $stored['GSI4PK'] ?? null);
+        $this->assertSame('SOIT', $stored['department'] ?? null);
     }
 
     public function test_returns_422_when_the_role_is_invalid(): void
@@ -76,15 +100,18 @@ class SignatoryControllerTest extends TestCase
         $response = $this->withAdminAuth()->putJson('/api/v1/admins/signatories/adv001', [
             'name' => 'Prof. Juan Dela Cruz',
             'role' => 'dean',
+            'department' => 'SOIT',
         ]);
 
         $response->assertOk()
             ->assertJsonPath('data.signatory_id', 'adv001')
             ->assertJsonPath('data.role', 'dean')
+            ->assertJsonPath('data.department', 'SOIT')
             ->assertJsonPath('data.organization_id', null);
 
         $stored = $db->find('SIGNATORY#adv001', 'SIGNATORY#adv001');
-        $this->assertSame('ROLE#DEAN', $stored['GSI4PK'] ?? null);
+        $this->assertSame('ROLE#DEAN#SOIT', $stored['GSI4PK'] ?? null);
+        $this->assertSame('SOIT', $stored['department'] ?? null);
         $this->assertArrayNotHasKey('organization_id', $stored);
 
         $notification = $db->find('SUBMISSION#s001', 'NOTIFICATION#2026-09-11T08:30:00Z');
