@@ -9,6 +9,7 @@ signatories: [
   { role: "cdm",      signatory_id: "cdm001" },
   { role: "dean",     signatory_id: "dean001" }
 ]
+Desk directory for this org (one person per role). Not stored on SIGNATORY.
 
 EVENT
 PK: EVENT#uuid
@@ -74,12 +75,29 @@ signatory: SIGNATORY#uuid
 notif_type: string
 comment: string (mandatory if denied)
 
-SIGNATORY 
+SIGNATORY
 PK: SIGNATORY#uuid
 SK: SIGNATORY#uuid
 name: string
-GSI4PK: role_key
+role: "adviser" | "cdm" | "dean"
+department: string (deans only, e.g. SOIT)
+GSI4PK: ROLE#ADVISER | ROLE#CDM | ROLE#DEAN | ROLE#DEAN#{DEPARTMENT}
 GSI4SK: SIGNATORY#uuid
+
+A SIGNATORY item is the person. It has no organization_id.
+Who occupies adviser / CDM / dean for an org is ORGANIZATION.signatories.
+GSI4 is the role index, not an org assignment. Adviser and CDM are ROLE#{ROLE}.
+Deans may add a department suffix: ROLE#DEAN#SOIT.
+
+Other items copy the signatory id; they do not join back to SIGNATORY:
+  ORGANIZATION.signatories[].signatory_id
+  SUBMISSION.current_signatory and GSI2PK (inbox)
+  NOTIFICATION.signatory (timeline snapshot)
+  APPEALS.signatory_destination and GSI3PK (appeal inbox)
+Deleting a SIGNATORY item does not rewrite those copies. Replace a person in
+place by keeping the same uuid (PUT name / role / department). A new uuid
+leaves in-flight papers, open appeals, org desks, and Cognito custom:signatory_id
+pointing at the old id.
 
 APPEALS
 PK: SUBMISSION#uuid
@@ -186,7 +204,12 @@ json
     "audiovisual_equipment": { "purpose": "Projector for demo", "items": [{ "date_needed": "2026-10-05", "time_needed": "17:00", "equipment_needed": "Projector", "remarks": "1 unit" }] }
   }
 }
-Since activity_type = extra-curricular and has_reservation = true, this submission needs both Adviser and CDM in sequence — current_signatory currently points to Adviser first, but nothing in the schema yet encodes "CDM comes next after Adviser approves." That's the resolver logic still needed.
+Routing is application logic, not a field on SUBMISSION. Extra-curricular +
+has_reservation → Adviser then CDM from ORGANIZATION.signatories; every other
+combination is Adviser only. current_signatory / GSI2PK hold whoever has the
+paper now. On approve, the resolver reads the org desk list again to pick the
+next id (or drop GSI2 when the sequence is done). Appeals go to the org Dean.
+
 NOTIFICATION
 json
 {
@@ -196,14 +219,26 @@ json
   "notif_type": "approved",
   "comment": ""
 }
-SIGNATORY
+SIGNATORY (adviser)
 json
 {
   "PK": "SIGNATORY#adv001",
   "SK": "SIGNATORY#adv001",
   "name": "Prof. Juan Dela Cruz",
-  "GSI4PK": "ROLE#ADVISER", (ONLY FOR DEANS -> "ROLE#DEAN#SOIT" <- SOIT IS A DEPARTMENT)
+  "role": "adviser",
+  "GSI4PK": "ROLE#ADVISER",
   "GSI4SK": "SIGNATORY#adv001"
+}
+SIGNATORY (dean, department-scoped)
+json
+{
+  "PK": "SIGNATORY#dean001",
+  "SK": "SIGNATORY#dean001",
+  "name": "Dean Maria Santos",
+  "role": "dean",
+  "department": "SOIT",
+  "GSI4PK": "ROLE#DEAN#SOIT",
+  "GSI4SK": "SIGNATORY#dean001"
 }
 APPEALS
 json
