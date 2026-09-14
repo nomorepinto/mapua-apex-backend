@@ -2,23 +2,28 @@
 
 namespace App\Aws\DynamoDb;
 
+use Illuminate\Support\Str;
+
 final class FindSignatoryByRole
 {
-    public function __construct(private DynamoDbItems $items) {}
+    public function __construct(private OrganizationRecords $organizations) {}
 
     public function handle(string $organizationId, string $role): ?string
     {
-        $matches = $this->items->query([
-            'IndexName' => 'GSI4',
-            'KeyConditionExpression' => 'GSI4PK = :role',
-            'ExpressionAttributeValues' => [
-                ':role' => ['S' => DynamoKeys::roleIndex($role, $organizationId)],
-            ],
-            'Limit' => 1,
-        ], allPages: false);
+        $organization = $this->organizations->get($organizationId);
 
-        $pk = $matches[0]['PK'] ?? null;
+        if ($organization === null) {
+            return null;
+        }
 
-        return DynamoKeys::strip($pk, 'SIGNATORY#');
+        $wanted = Str::lower($role);
+
+        foreach ($this->organizations->desks($organization) as $desk) {
+            if ($desk['role'] === $wanted) {
+                return $desk['signatory_id'];
+            }
+        }
+
+        return null;
     }
 }

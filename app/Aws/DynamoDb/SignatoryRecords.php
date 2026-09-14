@@ -6,7 +6,10 @@ use Illuminate\Support\Str;
 
 final class SignatoryRecords
 {
-    public function __construct(private DynamoDbItems $items) {}
+    public function __construct(
+        private DynamoDbItems $items,
+        private OrganizationRecords $organizations,
+    ) {}
 
     /**
      * @return list<array<string, mixed>>
@@ -46,30 +49,45 @@ final class SignatoryRecords
      */
     public function update(string $signatoryId, string $name, string $role, string $organizationId): array
     {
-        if ($this->get($signatoryId) === null) {
+        $existing = $this->get($signatoryId);
+
+        if ($existing === null) {
             abort(404);
         }
 
-        return $this->write($signatoryId, $name, $role, $organizationId);
+        return $this->write($signatoryId, $name, $role, $organizationId, $existing);
     }
 
     /**
+     * @param  array<string, mixed>|null  $existing
      * @return array<string, mixed>
      */
-    private function write(string $id, string $name, string $role, string $organizationId): array
+    private function write(string $id, string $name, string $role, string $organizationId, ?array $existing = null): array
     {
+        $this->organizations->require($organizationId);
+
+        $role = Str::lower($role);
+        $organizationId = DynamoKeys::strip($organizationId, 'ORGANIZATION#') ?? $organizationId;
+        $previousOrganizationId = DynamoKeys::strip($existing['organization_id'] ?? null, 'ORGANIZATION#');
+
         $key = DynamoKeys::signatory($id);
         $item = [
             'PK' => $key,
             'SK' => $key,
             'name' => $name,
-            'role' => Str::lower($role),
-            'organization_id' => DynamoKeys::strip($organizationId, 'ORGANIZATION#'),
+            'role' => $role,
+            'organization_id' => $organizationId,
             'GSI4PK' => DynamoKeys::roleIndex($role, $organizationId),
             'GSI4SK' => $key,
         ];
 
         $this->items->put($item);
+
+        if (is_string($previousOrganizationId) && $previousOrganizationId !== '' && $previousOrganizationId !== $organizationId) {
+            $this->organizations->detach($previousOrganizationId, $id);
+        }
+
+        $this->organizations->assign($organizationId, $role, $id);
 
         return $item;
     }

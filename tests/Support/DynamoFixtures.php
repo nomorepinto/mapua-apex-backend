@@ -6,12 +6,20 @@ use Tests\Fakes\InMemoryDynamoDb;
 
 final class DynamoFixtures
 {
-    public static function organization(InMemoryDynamoDb $db, string $id = 'a1b2', string $name = 'Mapua Computing Society'): void
-    {
+    /**
+     * @param  list<array{role: string, signatory_id: string}>  $signatories
+     */
+    public static function organization(
+        InMemoryDynamoDb $db,
+        string $id = 'a1b2',
+        string $name = 'Mapua Computing Society',
+        array $signatories = [],
+    ): void {
         $db->seed([
             'PK' => 'ORGANIZATION#'.$id,
             'SK' => 'ORGANIZATION#'.$id,
             'name' => $name,
+            'signatories' => $signatories,
         ]);
     }
 
@@ -42,6 +50,29 @@ final class DynamoFixtures
             'GSI4PK' => 'ROLE#'.strtoupper($role).'#ORG#'.$org,
             'GSI4SK' => 'SIGNATORY#'.$id,
         ]);
+
+        $organization = $db->find('ORGANIZATION#'.$org, 'ORGANIZATION#'.$org);
+        $desks = is_array($organization['signatories'] ?? null) ? $organization['signatories'] : [];
+        $next = [];
+
+        foreach ($desks as $desk) {
+            if (! is_array($desk)) {
+                continue;
+            }
+
+            if (($desk['role'] ?? null) === $role || ($desk['signatory_id'] ?? null) === $id) {
+                continue;
+            }
+
+            $next[] = $desk;
+        }
+
+        $next[] = [
+            'role' => $role,
+            'signatory_id' => $id,
+        ];
+
+        self::organization($db, $org, is_string($organization['name'] ?? null) ? $organization['name'] : 'Mapua Computing Society', $next);
     }
 
     /**

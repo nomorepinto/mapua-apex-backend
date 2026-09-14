@@ -18,6 +18,32 @@ class OrganizationResource extends JsonResource
         return [
             'organization_id' => DynamoKeys::strip($item['PK'] ?? null, 'ORGANIZATION#'),
             'name' => $item['name'] ?? null,
+            'signatories' => $this->signatories($item['signatories'] ?? []),
         ];
+    }
+
+    /**
+     * @return list<array{role: string|null, signatory_id: string|null}>
+     */
+    private function signatories(mixed $entries): array
+    {
+        if (! is_array($entries)) {
+            return [];
+        }
+
+        $signatories = [];
+
+        foreach ($entries as $entry) {
+            if (! is_array($entry)) {
+                continue;
+            }
+
+            $signatories[] = [
+                'role' => $entry['role'] ?? null,
+                'signatory_id' => DynamoKeys::strip($entry['signatory_id'] ?? null, 'SIGNATORY#'),
+            ];
+        }
+
+        return $signatories;
     }
 }

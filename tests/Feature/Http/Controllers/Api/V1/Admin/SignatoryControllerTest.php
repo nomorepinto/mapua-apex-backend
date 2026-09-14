@@ -23,6 +23,7 @@ class SignatoryControllerTest extends TestCase
     public function test_creates_a_signatory_with_a_role_index(): void
     {
         $db = InMemoryDynamoDb::bind($this);
+        DynamoFixtures::organization($db);
 
         $response = $this->withAdminAuth()->postJson('/api/v1/admins/signatories', [
             'name' => 'Prof. Juan Dela Cruz',
@@ -37,6 +38,24 @@ class SignatoryControllerTest extends TestCase
         $id = $response->json('data.signatory_id');
         $stored = $db->find('SIGNATORY#'.$id, 'SIGNATORY#'.$id);
         $this->assertSame('ROLE#ADVISER#ORG#a1b2', $stored['GSI4PK'] ?? null);
+
+        $organization = $db->find('ORGANIZATION#a1b2', 'ORGANIZATION#a1b2');
+        $this->assertSame([
+            ['role' => 'adviser', 'signatory_id' => $id],
+        ], $organization['signatories'] ?? null);
+    }
+
+    public function test_returns_422_when_the_organization_does_not_exist(): void
+    {
+        InMemoryDynamoDb::bind($this);
+
+        $this->withAdminAuth()
+            ->postJson('/api/v1/admins/signatories', [
+                'name' => 'Prof. Juan Dela Cruz',
+                'role' => 'adviser',
+                'organization_id' => 'missing',
+            ])
+            ->assertUnprocessable();
     }
 
     public function test_updates_a_signatory_role_without_rewriting_notifications(): void
@@ -62,5 +81,10 @@ class SignatoryControllerTest extends TestCase
 
         $notification = $db->find('SUBMISSION#s001', 'NOTIFICATION#2026-09-11T08:30:00Z');
         $this->assertSame('SIGNATORY#adv001', $notification['signatory'] ?? null);
+
+        $organization = $db->find('ORGANIZATION#a1b2', 'ORGANIZATION#a1b2');
+        $this->assertSame([
+            ['role' => 'dean', 'signatory_id' => 'adv001'],
+        ], $organization['signatories'] ?? null);
     }
 }

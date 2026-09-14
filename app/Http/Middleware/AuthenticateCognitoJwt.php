@@ -8,6 +8,7 @@ use App\Auth\InvalidCognitoJwt;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Context;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -25,23 +26,45 @@ class AuthenticateCognitoJwt
         $jwt = $request->bearerToken();
 
         if (! is_string($jwt) || $jwt === '') {
-            abort(401, 'Unauthenticated: Bearer token is missing.');
+            $this->reject($request, $role, 'jwt_missing', 'Unauthenticated: Bearer token is missing.');
         }
 
         try {
             $claims = $this->verifier->verify($jwt);
         } catch (InvalidCognitoJwt $e) {
-            abort(401, 'Unauthenticated: Invalid Cognito token ('.$e->getMessage().').');
-        } catch (CognitoJwksUnavailable) {
-            abort(503, 'Identity provider unavailable.');
+            $this->reject(
+                $request,
+                $role,
+                'jwt_invalid',
+                'Unauthenticated: Invalid Cognito token ('.$e->getMessage().').',
+                error: $e->getMessage(),
+            );
+        } catch (CognitoJwksUnavailable $e) {
+            $this->reject(
+                $request,
+                $role,
+                'jwt_jwks_unavailable',
+                'Identity provider unavailable.',
+                status: 503,
+                error: $e->getMessage(),
+            );
         }
 
-        $groups = $claims['cognito:groups'] ?? null;
-        $isAdmin = is_array($groups) && in_array('admin', $groups, true);
+        $groups = $this->groups($claims['cognito:groups'] ?? null);
+        $isAdmin = in_array('admin', $groups, true);
 
         if (is_string($role) && $role !== '') {
-            if (is_array($groups) && ! in_array($role, $groups, true) && ! $isAdmin) {
-                abort(401, "Unauthenticated: User is not in the required '$role' or 'admin' Cognito group.");
+            if (! in_array($role, $groups, true) && ! $isAdmin) {
+                $this->reject(
+                    $request,
+                    $role,
+                    'jwt_group_mismatch',
+                    "Unauthenticated: User is not in the required '$role' or 'admin' Cognito group.",
+                    extra: [
+                        'groups' => $groups,
+                        'token_use' => $claims['token_use'] ?? null,
+                    ],
+                );
             }
         }
 
@@ -120,7 +143,18 @@ class AuthenticateCognitoJwt
         }
 
         if ($role === $requiredForRole) {
-            abort(401, "Unauthenticated: Missing {$claimKeys[0]} in Cognito token.");
+            $this->reject(
+                $request,
+                $role,
+                'jwt_claim_missing',
+                "Unauthenticated: Missing {$claimKeys[0]} in Cognito token.",
+                extra: [
+                    'missing_claim' => $claimKeys[0],
+                    'token_use' => $claims['token_use'] ?? null,
+                    'has_organization_id_claim' => $this->firstNonEmptyClaim($claims, ['custom:organization_id', 'organization_id']) !== null,
+                    'has_signatory_id_claim' => $this->firstNonEmptyClaim($claims, ['custom:signatory_id', 'signatory_id']) !== null,
+                ],
+            );
         }
     }
 
@@ -139,5 +173,52 @@ class AuthenticateCognitoJwt
         }
 
         return null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function groups(mixed $groups): array
+    {
+        if (is_string($groups) && $groups !== '') {
+            return [$groups];
+        }
+
+        if (! is_array($groups)) {
+            return [];
+        }
+
+        return array_values(array_filter($groups, fn (mixed $group): bool => is_string($group) && $group !== ''));
+    }
+
+    /**
+     * @param  array<string, mixed>  $extra
+     */
+    private function reject(
+        Request $request,
+        ?string $role,
+        string $reason,
+        string $message,
+        int $status = 401,
+        ?string $error = null,
+        array $extra = [],
+    ): never {
+        $poolId = (string) config('aws.cognito.user_pool_id');
+        $clientId = (string) config('aws.cognito.client_id');
+
+        Log::warning('Cognito JWT authentication failed.', [
+            'reason' => $reason,
+            'role' => $role,
+            'method' => $request->method(),
+            'path' => $request->path(),
+            'has_bearer' => is_string($request->bearerToken()) && $request->bearerToken() !== '',
+            'cognito_pool_configured' => $poolId !== '',
+            'cognito_client_configured' => $clientId !== '',
+            'cognito_region' => config('aws.cognito.region'),
+            'error' => $error,
+            ...$extra,
+        ]);
+
+        abort($status, $message);
     }
 }

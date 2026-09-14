@@ -29,7 +29,8 @@ class AuthenticateCognitoJwtTest extends TestCase
 
         $response = $this->withApiKey()->getJson('/api/_test/cognito');
 
-        $response->assertUnauthorized();
+        $response->assertUnauthorized()
+            ->assertJsonPath('message', 'Unauthenticated: Bearer token is missing.');
     }
 
     public function test_returns_401_when_jwt_is_invalid(): void
@@ -40,7 +41,8 @@ class AuthenticateCognitoJwtTest extends TestCase
             ->withToken('invalid-jwt')
             ->getJson('/api/_test/cognito');
 
-        $response->assertUnauthorized();
+        $response->assertUnauthorized()
+            ->assertJsonPath('message', 'Unauthenticated: Invalid Cognito token (Invalid token.).');
     }
 
     public function test_returns_401_when_organization_claim_is_missing(): void
@@ -54,7 +56,8 @@ class AuthenticateCognitoJwtTest extends TestCase
             ->withToken('fake-jwt')
             ->getJson('/api/_test/cognito');
 
-        $response->assertUnauthorized();
+        $response->assertUnauthorized()
+            ->assertJsonPath('message', 'Unauthenticated: Missing custom:organization_id in Cognito token.');
     }
 
     public function test_returns_401_when_cognito_group_does_not_match_route_role(): void
@@ -67,7 +70,8 @@ class AuthenticateCognitoJwtTest extends TestCase
             ->withToken('fake-jwt')
             ->getJson('/api/_test/cognito');
 
-        $response->assertUnauthorized();
+        $response->assertUnauthorized()
+            ->assertJsonPath('message', "Unauthenticated: User is not in the required 'student' or 'admin' Cognito group.");
     }
 
     public function test_allows_admin_group_on_a_student_route(): void
