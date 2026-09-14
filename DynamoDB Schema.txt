@@ -204,11 +204,13 @@ json
     "audiovisual_equipment": { "purpose": "Projector for demo", "items": [{ "date_needed": "2026-10-05", "time_needed": "17:00", "equipment_needed": "Projector", "remarks": "1 unit" }] }
   }
 }
-Routing is application logic, not a field on SUBMISSION. Extra-curricular +
-has_reservation → Adviser then CDM from ORGANIZATION.signatories; every other
-combination is Adviser only. current_signatory / GSI2PK hold whoever has the
-paper now. On approve, the resolver reads the org desk list again to pick the
-next id (or drop GSI2 when the sequence is done). Appeals go to the org Dean.
+Routing is application logic, not a field on SUBMISSION. Sequence is always
+Adviser, then Dean when activity_type is co-curricular, then OSAAR, then CDM
+when has_reservation is true. People come from ORGANIZATION.signatories.
+admin is a valid desk role but is not in this sequence. current_signatory /
+GSI2PK hold whoever has the paper now. On approve, the resolver reads the org
+desk list again to pick the next id (or drop GSI2 when the sequence is done).
+Appeals go to the org Dean (GSI3), separate from the happy-path Dean hop.
 
 NOTIFICATION
 json

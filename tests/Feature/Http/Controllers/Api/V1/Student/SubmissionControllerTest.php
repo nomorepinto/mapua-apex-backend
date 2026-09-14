@@ -178,6 +178,7 @@ class SubmissionControllerTest extends TestCase
         $db = InMemoryDynamoDb::bind($this);
         DynamoFixtures::event($db);
         DynamoFixtures::signatory($db, 'adv001', 'adviser');
+        DynamoFixtures::signatory($db, 'osaar001', 'osaar');
         DynamoFixtures::signatory($db, 'cdm001', 'cdm');
 
         $response = $this->withStudentAuth()->postJson('/api/v1/students/submissions', SaafPayload::valid());
@@ -198,6 +199,7 @@ class SubmissionControllerTest extends TestCase
         $db = InMemoryDynamoDb::bind($this);
         DynamoFixtures::event($db);
         DynamoFixtures::signatory($db, 'adv001', 'adviser');
+        DynamoFixtures::signatory($db, 'osaar001', 'osaar');
         DynamoFixtures::signatory($db, 'cdm001', 'cdm');
         DynamoFixtures::submission($db, [
             'status' => 'denied',

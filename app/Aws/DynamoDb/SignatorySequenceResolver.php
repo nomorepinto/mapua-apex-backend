@@ -7,22 +7,28 @@ final class SignatorySequenceResolver
     public function __construct(private FindSignatoryByRole $findSignatoryByRole) {}
 
     /**
-     * Extra-curricular activities that reserve a venue go Adviser then CDM.
-     * Every other combination is Adviser only — the schema only specifies the venue case.
+     * Co-curricular (academic) events go Adviser → Dean → OSAAR.
+     * Extra-curricular events skip Dean: Adviser → OSAAR.
+     * A venue reservation then adds CDM after OSAAR.
      *
      * @param  array<string, mixed>  $submission
      * @return list<string>
      */
     public function rolesFor(array $submission): array
     {
-        $activityType = data_get($submission, 'activity_classification.activity_type');
-        $hasReservation = data_get($submission, 'venue_reservation.has_reservation');
+        $roles = ['adviser'];
 
-        if ($activityType === 'extra-curricular' && $hasReservation === true) {
-            return ['adviser', 'cdm'];
+        if (data_get($submission, 'activity_classification.activity_type') === 'co-curricular') {
+            $roles[] = 'dean';
         }
 
-        return ['adviser'];
+        $roles[] = 'osaar';
+
+        if (data_get($submission, 'venue_reservation.has_reservation') === true) {
+            $roles[] = 'cdm';
+        }
+
+        return $roles;
     }
 
     /**

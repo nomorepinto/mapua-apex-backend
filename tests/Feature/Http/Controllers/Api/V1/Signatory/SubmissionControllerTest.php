@@ -92,22 +92,23 @@ class SubmissionControllerTest extends TestCase
         $response->assertNotFound();
     }
 
-    public function test_approve_advances_to_cdm_for_extra_curricular_venue_events(): void
+    public function test_approve_advances_to_osaar_for_extra_curricular_venue_events(): void
     {
         $this->freezeTime();
         $db = InMemoryDynamoDb::bind($this);
         DynamoFixtures::event($db);
         DynamoFixtures::signatory($db, 'adv001', 'adviser');
+        DynamoFixtures::signatory($db, 'osaar001', 'osaar');
         DynamoFixtures::signatory($db, 'cdm001', 'cdm');
         DynamoFixtures::submission($db);
 
         $response = $this->withSignatoryAuth()->postJson('/api/v1/signatories/events/e001/submissions/s001/approve');
 
         $response->assertOk()
-            ->assertJsonPath('data.current_signatory', 'cdm001');
+            ->assertJsonPath('data.current_signatory', 'osaar001');
 
         $stored = $db->find('EVENT#e001', 'SUBMISSION#s001');
-        $this->assertSame('SIGNATORY#cdm001', $stored['GSI2PK'] ?? null);
+        $this->assertSame('SIGNATORY#osaar001', $stored['GSI2PK'] ?? null);
         $this->assertNotNull($db->find('SUBMISSION#s001', 'NOTIFICATION#'.now()->utc()->format('Y-m-d\TH:i:s\Z')));
     }
 
