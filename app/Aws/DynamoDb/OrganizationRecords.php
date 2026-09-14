@@ -51,9 +51,10 @@ final class OrganizationRecords
     }
 
     /**
+     * @param  list<array<string, mixed>>  $signatories
      * @return array<string, mixed>
      */
-    public function create(string $name): array
+    public function create(string $name, array $signatories = []): array
     {
         $id = (string) Str::uuid();
         $key = DynamoKeys::organization($id);
@@ -61,7 +62,30 @@ final class OrganizationRecords
             'PK' => $key,
             'SK' => $key,
             'name' => $name,
-            'signatories' => [],
+            'signatories' => $this->orderedDesks($this->desks(['signatories' => $signatories])),
+        ];
+
+        $this->items->put($item);
+
+        return $item;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $signatories
+     * @return array<string, mixed>
+     */
+    public function update(string $organizationId, string $name, array $signatories): array
+    {
+        if ($this->get($organizationId) === null) {
+            abort(404);
+        }
+
+        $key = DynamoKeys::organization($organizationId);
+        $item = [
+            'PK' => $key,
+            'SK' => $key,
+            'name' => $name,
+            'signatories' => $this->orderedDesks($this->desks(['signatories' => $signatories])),
         ];
 
         $this->items->put($item);

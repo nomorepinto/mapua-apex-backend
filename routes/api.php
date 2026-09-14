@@ -77,6 +77,9 @@ Route::prefix('v1')->name('v1.')->group(function (): void {
             Route::post('organizations', [OrganizationController::class, 'store'])
                 ->middleware('throttle:admin-write')
                 ->name('organizations.store');
+            Route::put('organizations/{organization}', [OrganizationController::class, 'update'])
+                ->middleware('throttle:admin-write')
+                ->name('organizations.update');
             Route::get('signatories', [SignatoryController::class, 'index'])->name('signatories.index');
             Route::post('signatories', [SignatoryController::class, 'store'])
                 ->middleware('throttle:admin-write')

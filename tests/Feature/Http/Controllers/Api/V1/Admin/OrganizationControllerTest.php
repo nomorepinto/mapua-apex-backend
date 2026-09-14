@@ -38,6 +38,52 @@ class OrganizationControllerTest extends TestCase
         $this->assertNotNull($db->find('ORGANIZATION#'.$id, 'ORGANIZATION#'.$id));
     }
 
+    public function test_creates_an_organization_with_signatory_desks(): void
+    {
+        $db = InMemoryDynamoDb::bind($this);
+        DynamoFixtures::signatory($db, 'adv001', 'adviser');
+        DynamoFixtures::signatory($db, 'cdm001', 'cdm');
+
+        $response = $this->withAdminAuth()->postJson('/api/v1/admins/organizations', [
+            'name' => 'IEEE Mapua',
+            'signatories' => [
+                ['role' => 'cdm', 'signatory_id' => 'cdm001'],
+                ['role' => 'adviser', 'signatory_id' => 'adv001'],
+            ],
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.name', 'IEEE Mapua')
+            ->assertJsonPath('data.signatories.0.role', 'adviser')
+            ->assertJsonPath('data.signatories.0.signatory_id', 'adv001')
+            ->assertJsonPath('data.signatories.1.role', 'cdm')
+            ->assertJsonPath('data.signatories.1.signatory_id', 'cdm001');
+
+        $id = $response->json('data.organization_id');
+        $this->assertIsString($id);
+
+        $stored = $db->find('ORGANIZATION#'.$id, 'ORGANIZATION#'.$id);
+        $this->assertSame([
+            ['role' => 'adviser', 'signatory_id' => 'adv001'],
+            ['role' => 'cdm', 'signatory_id' => 'cdm001'],
+        ], $stored['signatories'] ?? null);
+    }
+
+    public function test_returns_422_when_a_signatory_desk_does_not_exist(): void
+    {
+        InMemoryDynamoDb::bind($this);
+
+        $this->withAdminAuth()
+            ->postJson('/api/v1/admins/organizations', [
+                'name' => 'IEEE Mapua',
+                'signatories' => [
+                    ['role' => 'adviser', 'signatory_id' => 'missing'],
+                ],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['signatories.0.signatory_id']);
+    }
+
     public function test_lists_organization_signatory_desks(): void
     {
         $db = InMemoryDynamoDb::bind($this);
@@ -59,5 +105,48 @@ class OrganizationControllerTest extends TestCase
             ->postJson('/api/v1/admins/organizations', [])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['name']);
+    }
+
+    public function test_updates_an_organization_name_and_desks(): void
+    {
+        $db = InMemoryDynamoDb::bind($this);
+        DynamoFixtures::organization($db);
+        DynamoFixtures::signatory($db, 'adv001', 'adviser');
+        DynamoFixtures::signatory($db, 'dean001', 'dean');
+
+        $response = $this->withAdminAuth()->putJson('/api/v1/admins/organizations/a1b2', [
+            'name' => 'IEEE Mapua',
+            'signatories' => [
+                ['role' => 'dean', 'signatory_id' => 'dean001'],
+                ['role' => 'adviser', 'signatory_id' => 'adv001'],
+            ],
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.organization_id', 'a1b2')
+            ->assertJsonPath('data.name', 'IEEE Mapua')
+            ->assertJsonPath('data.signatories.0.role', 'adviser')
+            ->assertJsonPath('data.signatories.0.signatory_id', 'adv001')
+            ->assertJsonPath('data.signatories.1.role', 'dean')
+            ->assertJsonPath('data.signatories.1.signatory_id', 'dean001');
+
+        $stored = $db->find('ORGANIZATION#a1b2', 'ORGANIZATION#a1b2');
+        $this->assertSame('IEEE Mapua', $stored['name'] ?? null);
+        $this->assertSame([
+            ['role' => 'adviser', 'signatory_id' => 'adv001'],
+            ['role' => 'dean', 'signatory_id' => 'dean001'],
+        ], $stored['signatories'] ?? null);
+    }
+
+    public function test_returns_404_when_the_organization_id_does_not_exist(): void
+    {
+        InMemoryDynamoDb::bind($this);
+
+        $this->withAdminAuth()
+            ->putJson('/api/v1/admins/organizations/missing', [
+                'name' => 'IEEE Mapua',
+                'signatories' => [],
+            ])
+            ->assertNotFound();
     }
 }
