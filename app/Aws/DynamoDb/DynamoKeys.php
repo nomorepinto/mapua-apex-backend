@@ -41,9 +41,9 @@ final class DynamoKeys
         return 'DEADLINE#'.self::strip($id, 'DEADLINE#');
     }
 
-    public static function roleIndex(string $role, string $organizationId): string
+    public static function roleIndex(string $role): string
     {
-        return 'ROLE#'.Str::upper($role).'#ORG#'.self::strip($organizationId, 'ORGANIZATION#');
+        return 'ROLE#'.Str::upper($role);
     }
 
     public static function strip(mixed $value, string $prefix): ?string

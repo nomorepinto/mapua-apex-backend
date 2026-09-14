@@ -20,7 +20,7 @@ class SignatoryControllerTest extends TestCase
             ->assertJsonPath('data.0.role', 'adviser');
     }
 
-    public function test_creates_a_signatory_with_a_role_index(): void
+    public function test_creates_a_signatory_without_assigning_an_organization(): void
     {
         $db = InMemoryDynamoDb::bind($this);
         DynamoFixtures::organization($db);
@@ -28,37 +28,40 @@ class SignatoryControllerTest extends TestCase
         $response = $this->withAdminAuth()->postJson('/api/v1/admins/signatories', [
             'name' => 'Prof. Juan Dela Cruz',
             'role' => 'adviser',
-            'organization_id' => 'a1b2',
         ]);
 
         $response->assertCreated()
             ->assertJsonPath('data.role', 'adviser')
-            ->assertJsonPath('data.organization_id', 'a1b2');
+            ->assertJsonPath('data.organization_id', null);
 
         $id = $response->json('data.signatory_id');
+        $this->assertIsString($id);
+
         $stored = $db->find('SIGNATORY#'.$id, 'SIGNATORY#'.$id);
-        $this->assertSame('ROLE#ADVISER#ORG#a1b2', $stored['GSI4PK'] ?? null);
+        $this->assertSame('Prof. Juan Dela Cruz', $stored['name'] ?? null);
+        $this->assertSame('adviser', $stored['role'] ?? null);
+        $this->assertSame('ROLE#ADVISER', $stored['GSI4PK'] ?? null);
+        $this->assertSame('SIGNATORY#'.$id, $stored['GSI4SK'] ?? null);
+        $this->assertArrayNotHasKey('organization_id', $stored);
 
         $organization = $db->find('ORGANIZATION#a1b2', 'ORGANIZATION#a1b2');
-        $this->assertSame([
-            ['role' => 'adviser', 'signatory_id' => $id],
-        ], $organization['signatories'] ?? null);
+        $this->assertSame([], $organization['signatories'] ?? null);
     }
 
-    public function test_returns_422_when_the_organization_does_not_exist(): void
+    public function test_returns_422_when_the_role_is_invalid(): void
     {
         InMemoryDynamoDb::bind($this);
 
         $this->withAdminAuth()
             ->postJson('/api/v1/admins/signatories', [
                 'name' => 'Prof. Juan Dela Cruz',
-                'role' => 'adviser',
-                'organization_id' => 'missing',
+                'role' => 'president',
             ])
-            ->assertUnprocessable();
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['role']);
     }
 
-    public function test_updates_a_signatory_role_without_rewriting_notifications(): void
+    public function test_updates_a_signatory_by_id_without_rewriting_notifications_or_org_desks(): void
     {
         $db = InMemoryDynamoDb::bind($this);
         DynamoFixtures::signatory($db, 'adv001', 'adviser');
@@ -73,18 +76,35 @@ class SignatoryControllerTest extends TestCase
         $response = $this->withAdminAuth()->putJson('/api/v1/admins/signatories/adv001', [
             'name' => 'Prof. Juan Dela Cruz',
             'role' => 'dean',
-            'organization_id' => 'a1b2',
         ]);
 
         $response->assertOk()
-            ->assertJsonPath('data.role', 'dean');
+            ->assertJsonPath('data.signatory_id', 'adv001')
+            ->assertJsonPath('data.role', 'dean')
+            ->assertJsonPath('data.organization_id', null);
+
+        $stored = $db->find('SIGNATORY#adv001', 'SIGNATORY#adv001');
+        $this->assertSame('ROLE#DEAN', $stored['GSI4PK'] ?? null);
+        $this->assertArrayNotHasKey('organization_id', $stored);
 
         $notification = $db->find('SUBMISSION#s001', 'NOTIFICATION#2026-09-11T08:30:00Z');
         $this->assertSame('SIGNATORY#adv001', $notification['signatory'] ?? null);
 
         $organization = $db->find('ORGANIZATION#a1b2', 'ORGANIZATION#a1b2');
         $this->assertSame([
-            ['role' => 'dean', 'signatory_id' => 'adv001'],
+            ['role' => 'adviser', 'signatory_id' => 'adv001'],
         ], $organization['signatories'] ?? null);
+    }
+
+    public function test_returns_404_when_the_signatory_id_does_not_exist(): void
+    {
+        InMemoryDynamoDb::bind($this);
+
+        $this->withAdminAuth()
+            ->putJson('/api/v1/admins/signatories/missing', [
+                'name' => 'Prof. Juan Dela Cruz',
+                'role' => 'dean',
+            ])
+            ->assertNotFound();
     }
 }

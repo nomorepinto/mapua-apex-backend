@@ -19,7 +19,6 @@ class StoreSignatoryRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:150'],
             'role' => ['required', 'in:adviser,cdm,dean'],
-            'organization_id' => ['required', 'string', 'max:64'],
         ];
     }
 }

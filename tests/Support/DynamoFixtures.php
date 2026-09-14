@@ -47,7 +47,7 @@ final class DynamoFixtures
             'name' => $name,
             'role' => $role,
             'organization_id' => $org,
-            'GSI4PK' => 'ROLE#'.strtoupper($role).'#ORG#'.$org,
+            'GSI4PK' => 'ROLE#'.strtoupper($role),
             'GSI4SK' => 'SIGNATORY#'.$id,
         ]);
 
