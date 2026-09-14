@@ -1,4 +1,4 @@
-FROM php:8.3-cli
+FROM php:8.4-cli
 
 # Set environment variables
 ENV COMPOSER_ALLOW_SUPERUSER=1
@@ -7,11 +7,21 @@ ENV COMPOSER_ALLOW_SUPERUSER=1
 RUN apt-get update && apt-get install -y \
     git \
     curl \
-    libzip-dev \
     unzip \
+    libzip-dev \
     libonig-dev \
     libxml2-dev \
-    && docker-php-ext-install zip mbstring bcmath xml pdo \
+    libpng-dev \
+    libicu-dev \
+    && docker-php-ext-install \
+    zip \
+    mbstring \
+    bcmath \
+    xml \
+    pdo \
+    pdo_mysql \
+    intl \
+    pcntl \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Composer
@@ -22,20 +32,17 @@ WORKDIR /var/www
 # Copy project files
 COPY . .
 
-# Create necessary storage directories
-RUN mkdir -p storage/framework/sessions \
-             storage/framework/views \
-             storage/framework/cache \
-             storage/logs \
-             bootstrap/cache
-
-# Install production dependencies without running artisan scripts during build
-# (Artisan scripts run at runtime when environment variables are injected by Render)
+# Install production dependencies without running scripts prematurely
 RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-scripts
 
-# Set permissions
-RUN chmod -R 775 storage bootstrap/cache \
+# Create necessary storage folders and set permissions
+RUN mkdir -p storage/framework/sessions \
+    storage/framework/views \
+    storage/framework/cache \
+    storage/logs \
+    bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache
 
-# Discover packages and run Laravel server on $PORT
+# Run discovery at startup when runtime environment variables are present, then start the server
 CMD php artisan package:discover --ansi && php artisan serve --host=0.0.0.0 --port=${PORT:-10000}
