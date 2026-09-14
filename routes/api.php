@@ -5,10 +5,12 @@ use App\Http\Controllers\Api\V1\Admin\OrganizationController;
 use App\Http\Controllers\Api\V1\Admin\SignatoryController;
 use App\Http\Controllers\Api\V1\Admin\SubmissionController as AdminSubmissionController;
 use App\Http\Controllers\Api\V1\Signatory\AppealController as SignatoryAppealController;
+use App\Http\Controllers\Api\V1\Signatory\ProfileController as SignatoryProfileController;
 use App\Http\Controllers\Api\V1\Signatory\SubmissionController as SignatorySubmissionController;
 use App\Http\Controllers\Api\V1\Student\AppealController as StudentAppealController;
 use App\Http\Controllers\Api\V1\Student\DeadlineController;
 use App\Http\Controllers\Api\V1\Student\NotificationController;
+use App\Http\Controllers\Api\V1\Student\OrganizationController as StudentOrganizationController;
 use App\Http\Controllers\Api\V1\Student\SubmissionController as StudentSubmissionController;
 use Illuminate\Support\Facades\Route;
 
@@ -40,12 +42,14 @@ Route::prefix('v1')->name('v1.')->group(function (): void {
                 ->middleware('throttle:student-write')
                 ->name('appeals.store');
             Route::get('deadlines', [DeadlineController::class, 'index'])->name('deadlines.index');
+            Route::get('organization', [StudentOrganizationController::class, 'show'])->name('organization.show');
         });
 
     Route::middleware(['cognito.jwt:signatory', 'throttle:signatory'])
         ->prefix('signatories')
         ->name('signatories.')
         ->group(function (): void {
+            Route::get('me', [SignatoryProfileController::class, 'show'])->name('me.show');
             Route::get('submissions', [SignatorySubmissionController::class, 'index'])->name('submissions.index');
             Route::get('events/{event}/submissions/{submission}', [SignatorySubmissionController::class, 'show'])
                 ->name('submissions.show');
