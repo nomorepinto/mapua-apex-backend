@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Admin\SubmissionController as AdminSubmissionCon
 use App\Http\Controllers\Api\V1\Signatory\AppealController as SignatoryAppealController;
 use App\Http\Controllers\Api\V1\Signatory\ProfileController as SignatoryProfileController;
 use App\Http\Controllers\Api\V1\Signatory\SubmissionController as SignatorySubmissionController;
+use App\Http\Controllers\Api\V1\Student\AnnouncementController as StudentAnnouncementController;
 use App\Http\Controllers\Api\V1\Student\AppealController as StudentAppealController;
 use App\Http\Controllers\Api\V1\Student\DeadlineController;
 use App\Http\Controllers\Api\V1\Student\NotificationController;
@@ -43,6 +44,7 @@ Route::prefix('v1')->name('v1.')->group(function (): void {
                 ->middleware('throttle:student-write')
                 ->name('appeals.store');
             Route::get('deadlines', [DeadlineController::class, 'index'])->name('deadlines.index');
+            Route::get('announcements', [StudentAnnouncementController::class, 'index'])->name('announcements.index');
             Route::get('organization', [StudentOrganizationController::class, 'show'])->name('organization.show');
         });
 
