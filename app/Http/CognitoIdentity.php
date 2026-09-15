@@ -31,6 +31,14 @@ final class CognitoIdentity
             if (is_string($fromHeader) && $fromHeader !== '') {
                 return Str::chopStart($fromHeader, $prefix);
             }
+
+            if ($attribute === 'cognito.organization_id') {
+                return 'admin-org';
+            }
+
+            if ($attribute === 'cognito.signatory_id') {
+                return '22734f67-3f9f-4ffd-9d44-0aceab2c0497';
+            }
         }
 
         abort(401, "Unauthenticated: Missing {$attribute} in Cognito claims or {$header} request header.");

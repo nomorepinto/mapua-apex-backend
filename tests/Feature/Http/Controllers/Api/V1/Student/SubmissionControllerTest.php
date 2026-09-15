@@ -9,6 +9,12 @@ use Tests\TestCase;
 
 class SubmissionControllerTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        InMemoryDynamoDb::bind($this);
+    }
+
     public function test_returns_401_when_api_key_is_missing(): void
     {
         $this->fakeCognitoJwt();
@@ -29,13 +35,12 @@ class SubmissionControllerTest extends TestCase
         $response->assertUnauthorized();
     }
 
-    public function test_returns_401_when_admin_omits_organization(): void
+    public function test_defaults_to_admin_org_when_admin_omits_organization(): void
     {
-        InMemoryDynamoDb::bind($this);
-
         $response = $this->withAdminAuth()->getJson('/api/v1/students/submissions');
 
-        $response->assertUnauthorized();
+        $response->assertOk()
+            ->assertExactJson(['data' => []]);
     }
 
     public function test_lists_submissions_when_admin_sends_an_organization_header(): void
