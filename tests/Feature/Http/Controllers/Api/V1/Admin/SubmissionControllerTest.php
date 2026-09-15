@@ -33,7 +33,7 @@ class SubmissionControllerTest extends TestCase
             ->assertJsonPath('data.0.submission_id', 's001');
     }
 
-    public function test_returns_submission_detail_with_notifications_and_appeals(): void
+    public function test_returns_submission_detail_with_notifications(): void
     {
         $db = InMemoryDynamoDb::bind($this);
         DynamoFixtures::event($db);
@@ -45,19 +45,12 @@ class SubmissionControllerTest extends TestCase
             'notif_type' => 'denied',
             'comment' => 'Fix the budget.',
         ]);
-        $db->seed([
-            'PK' => 'SUBMISSION#s001',
-            'SK' => 'APPEAL#ap001',
-            'event_id' => 'e001',
-            'comment' => 'Please reconsider.',
-            'status' => 'open',
-        ]);
 
         $response = $this->withAdminAuth()->getJson('/api/v1/admins/events/e001/submissions/s001');
 
         $response->assertOk()
             ->assertJsonPath('data.submission_id', 's001')
-            ->assertJsonPath('data.notifications.0.notif_type', 'denied')
-            ->assertJsonPath('data.appeals.0.appeal_id', 'ap001');
+            ->assertJsonPath('data.notifications.0.notif_type', 'denied');
+        $this->assertArrayNotHasKey('appeals', $response->json('data') ?? []);
     }
 }

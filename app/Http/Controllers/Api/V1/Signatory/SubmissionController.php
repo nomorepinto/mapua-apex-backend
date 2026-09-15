@@ -6,6 +6,7 @@ use App\Aws\DynamoDb\ApproveSubmission;
 use App\Aws\DynamoDb\DenySubmission;
 use App\Aws\DynamoDb\GetSubmission;
 use App\Aws\DynamoDb\ListSignatoryQueue;
+use App\Aws\DynamoDb\ReturnSubmission;
 use App\Http\CognitoIdentity;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Signatory\DenySubmissionRequest;
@@ -48,6 +49,20 @@ class SubmissionController extends Controller
         DenySubmission $deny,
     ): SubmissionResource {
         return new SubmissionResource($deny->handle(
+            CognitoIdentity::signatoryId($request),
+            $event,
+            $submission,
+            $request->validated('comment'),
+        ));
+    }
+
+    public function returnForRevision(
+        DenySubmissionRequest $request,
+        string $event,
+        string $submission,
+        ReturnSubmission $return,
+    ): SubmissionResource {
+        return new SubmissionResource($return->handle(
             CognitoIdentity::signatoryId($request),
             $event,
             $submission,

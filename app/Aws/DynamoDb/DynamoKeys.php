@@ -26,11 +26,6 @@ final class DynamoKeys
         return 'SIGNATORY#'.self::strip($id, 'SIGNATORY#');
     }
 
-    public static function appeal(string $id): string
-    {
-        return 'APPEAL#'.self::strip($id, 'APPEAL#');
-    }
-
     public static function notification(string $timestamp): string
     {
         return 'NOTIFICATION#'.$timestamp;

@@ -17,10 +17,7 @@ final class ApproveSubmission
     public function handle(string $signatoryId, string $eventId, string $submissionId): array
     {
         $submission = $this->submissions->require($eventId, $submissionId);
-
-        if (($submission['current_signatory'] ?? null) !== DynamoKeys::signatory($signatoryId)) {
-            abort(404);
-        }
+        SignatoryDesk::requireOpen($submission, $signatoryId);
 
         $event = $this->events->handle($eventId);
         $organizationId = DynamoKeys::strip($event['GSI1PK'] ?? null, 'ORGANIZATION#');
@@ -64,11 +61,13 @@ final class ApproveSubmission
 
         $nextSignatory = DynamoKeys::signatory($nextId);
         $this->items->patch(DynamoKeys::event($eventId), DynamoKeys::submission($submissionId), [
+            'status' => 'pending',
             'current_signatory' => $nextSignatory,
             'GSI2PK' => $nextSignatory,
             'GSI2SK' => $now,
         ]);
 
+        $submission['status'] = 'pending';
         $submission['current_signatory'] = $nextSignatory;
         $submission['GSI2PK'] = $nextSignatory;
         $submission['GSI2SK'] = $now;

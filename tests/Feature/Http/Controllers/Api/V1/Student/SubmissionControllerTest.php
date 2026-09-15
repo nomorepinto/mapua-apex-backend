@@ -194,7 +194,36 @@ class SubmissionControllerTest extends TestCase
         $this->assertSame('SIGNATORY#adv001', $stored['GSI2PK'] ?? null);
     }
 
-    public function test_updates_a_denied_submission_and_reopens_the_queue(): void
+    public function test_updates_a_returned_submission_and_keeps_it_on_the_same_desk(): void
+    {
+        $db = InMemoryDynamoDb::bind($this);
+        DynamoFixtures::event($db);
+        DynamoFixtures::signatory($db, 'adv001', 'adviser');
+        DynamoFixtures::signatory($db, 'osaar001', 'osaar');
+        DynamoFixtures::signatory($db, 'cdm001', 'cdm');
+        DynamoFixtures::submission($db, [
+            'status' => 'returned',
+            'current_signatory' => 'SIGNATORY#osaar001',
+            'GSI2PK' => 'SIGNATORY#osaar001',
+        ]);
+
+        $payload = SaafPayload::valid();
+        unset($payload['event_id']);
+
+        $response = $this->withStudentAuth()->putJson(
+            '/api/v1/students/events/e001/submissions/s001',
+            $payload,
+        );
+
+        $response->assertOk()
+            ->assertJsonPath('data.status', 'pending')
+            ->assertJsonPath('data.current_signatory', 'osaar001');
+
+        $stored = $db->find('EVENT#e001', 'SUBMISSION#s001');
+        $this->assertSame('SIGNATORY#osaar001', $stored['GSI2PK'] ?? null);
+    }
+
+    public function test_rejects_editing_a_denied_submission(): void
     {
         $db = InMemoryDynamoDb::bind($this);
         DynamoFixtures::event($db);
@@ -208,13 +237,8 @@ class SubmissionControllerTest extends TestCase
         $payload = SaafPayload::valid();
         unset($payload['event_id']);
 
-        $response = $this->withStudentAuth()->putJson(
-            '/api/v1/students/events/e001/submissions/s001',
-            $payload,
-        );
-
-        $response->assertOk()
-            ->assertJsonPath('data.status', 'pending')
-            ->assertJsonPath('data.current_signatory', 'adv001');
+        $this->withStudentAuth()
+            ->putJson('/api/v1/students/events/e001/submissions/s001', $payload)
+            ->assertUnprocessable();
     }
 }

@@ -112,6 +112,29 @@ class SubmissionControllerTest extends TestCase
         $this->assertNotNull($db->find('SUBMISSION#s001', 'NOTIFICATION#'.now()->utc()->format('Y-m-d\TH:i:s\Z')));
     }
 
+    public function test_return_requires_a_comment_and_keeps_the_gsi2_queue_entry(): void
+    {
+        $db = InMemoryDynamoDb::bind($this);
+        DynamoFixtures::event($db);
+        DynamoFixtures::submission($db);
+
+        $this->withSignatoryAuth()
+            ->postJson('/api/v1/signatories/events/e001/submissions/s001/return', [])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['comment']);
+
+        $response = $this->withSignatoryAuth()->postJson('/api/v1/signatories/events/e001/submissions/s001/return', [
+            'comment' => 'Please revise the budget.',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.status', 'returned');
+
+        $stored = $db->find('EVENT#e001', 'SUBMISSION#s001');
+        $this->assertSame('SIGNATORY#adv001', $stored['GSI2PK'] ?? null);
+        $this->assertSame('returned', $stored['status'] ?? null);
+    }
+
     public function test_deny_requires_a_comment_and_drops_the_gsi2_queue_entry(): void
     {
         $db = InMemoryDynamoDb::bind($this);
@@ -132,5 +155,20 @@ class SubmissionControllerTest extends TestCase
 
         $stored = $db->find('EVENT#e001', 'SUBMISSION#s001');
         $this->assertArrayNotHasKey('GSI2PK', $stored ?? []);
+    }
+
+    public function test_returned_submissions_remain_on_the_signatory_queue(): void
+    {
+        $db = InMemoryDynamoDb::bind($this);
+        DynamoFixtures::event($db);
+        DynamoFixtures::submission($db, [
+            'status' => 'returned',
+        ]);
+
+        $response = $this->withSignatoryAuth()->getJson('/api/v1/signatories/submissions');
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.submission_id', 's001')
+            ->assertJsonPath('data.0.status', 'returned');
     }
 }

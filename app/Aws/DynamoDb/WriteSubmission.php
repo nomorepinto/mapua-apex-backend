@@ -42,13 +42,25 @@ final class WriteSubmission
     {
         $this->events->forOrganization($eventId, $organizationId);
         $existing = $this->submissions->require($eventId, $submissionId);
+        $status = $existing['status'] ?? null;
 
-        if (($existing['status'] ?? null) === 'approved') {
+        if ($status === 'approved') {
             abort(422, 'Approved submissions cannot be edited.');
         }
 
+        if ($status === 'denied') {
+            abort(422, 'Denied submissions cannot be edited.');
+        }
+
+        if (! in_array($status, ['pending', 'returned'], true)) {
+            abort(422, 'This submission cannot be edited.');
+        }
+
         $signatoryIds = $this->sequence->signatoryIds($organizationId, $payload);
-        $currentSignatory = DynamoKeys::signatory($signatoryIds[0]);
+        $keepDesk = $status === 'returned' && is_string($existing['current_signatory'] ?? null);
+        $currentSignatory = $keepDesk
+            ? (string) $existing['current_signatory']
+            : DynamoKeys::signatory($signatoryIds[0]);
         $sentAt = DynamoKeys::now();
 
         $item = $this->submissionItem($organizationId, $eventId, $submissionId, $payload, $currentSignatory, $sentAt, 'pending');

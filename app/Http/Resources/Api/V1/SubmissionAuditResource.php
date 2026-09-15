@@ -15,7 +15,6 @@ class SubmissionAuditResource extends SubmissionResource
 
         return array_merge(parent::toArray($request), [
             'notifications' => NotificationResource::collection($item['notifications'] ?? [])->resolve(),
-            'appeals' => AppealResource::collection($item['appeals'] ?? [])->resolve(),
         ]);
     }
 }

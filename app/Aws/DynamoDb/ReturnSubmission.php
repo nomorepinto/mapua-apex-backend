@@ -2,7 +2,7 @@
 
 namespace App\Aws\DynamoDb;
 
-final class DenySubmission
+final class ReturnSubmission
 {
     public function __construct(
         private DynamoDbItems $items,
@@ -10,7 +10,7 @@ final class DenySubmission
     ) {}
 
     /**
-     * Final rejection. Drops GSI2 so the desk queue no longer lists it. Students cannot edit.
+     * Send the paper back for revision. GSI2 stays so the same desk still sees it.
      *
      * @return array<string, mixed>
      */
@@ -25,19 +25,17 @@ final class DenySubmission
             'PK' => DynamoKeys::submission($submissionId),
             'SK' => DynamoKeys::notification($now),
             'signatory' => DynamoKeys::signatory($signatoryId),
-            'notif_type' => 'denied',
+            'notif_type' => 'returned',
             'comment' => $comment,
         ]);
 
         $this->items->patch(
             DynamoKeys::event($eventId),
             DynamoKeys::submission($submissionId),
-            ['status' => 'denied'],
-            ['GSI2PK', 'GSI2SK'],
+            ['status' => 'returned'],
         );
 
-        $submission['status'] = 'denied';
-        unset($submission['GSI2PK'], $submission['GSI2SK']);
+        $submission['status'] = 'returned';
 
         return $submission;
     }

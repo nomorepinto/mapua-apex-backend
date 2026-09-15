@@ -1,15 +1,12 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Admin\AnnouncementController;
-use App\Http\Controllers\Api\V1\Admin\AppealController as AdminAppealController;
 use App\Http\Controllers\Api\V1\Admin\OrganizationController;
 use App\Http\Controllers\Api\V1\Admin\SignatoryController;
 use App\Http\Controllers\Api\V1\Admin\SubmissionController as AdminSubmissionController;
-use App\Http\Controllers\Api\V1\Signatory\AppealController as SignatoryAppealController;
 use App\Http\Controllers\Api\V1\Signatory\ProfileController as SignatoryProfileController;
 use App\Http\Controllers\Api\V1\Signatory\SubmissionController as SignatorySubmissionController;
 use App\Http\Controllers\Api\V1\Student\AnnouncementController as StudentAnnouncementController;
-use App\Http\Controllers\Api\V1\Student\AppealController as StudentAppealController;
 use App\Http\Controllers\Api\V1\Student\DeadlineController;
 use App\Http\Controllers\Api\V1\Student\NotificationController;
 use App\Http\Controllers\Api\V1\Student\OrganizationController as StudentOrganizationController;
@@ -38,11 +35,6 @@ Route::prefix('v1')->name('v1.')->group(function (): void {
                 ->name('submissions.update');
             Route::get('events/{event}/submissions/{submission}/notifications', [NotificationController::class, 'index'])
                 ->name('submissions.notifications.index');
-            Route::get('events/{event}/submissions/{submission}/appeals', [StudentAppealController::class, 'index'])
-                ->name('submissions.appeals.index');
-            Route::post('appeals', [StudentAppealController::class, 'store'])
-                ->middleware('throttle:student-write')
-                ->name('appeals.store');
             Route::get('deadlines', [DeadlineController::class, 'index'])->name('deadlines.index');
             Route::get('announcements', [StudentAnnouncementController::class, 'index'])->name('announcements.index');
             Route::get('organization', [StudentOrganizationController::class, 'show'])->name('organization.show');
@@ -59,13 +51,12 @@ Route::prefix('v1')->name('v1.')->group(function (): void {
             Route::post('events/{event}/submissions/{submission}/approve', [SignatorySubmissionController::class, 'approve'])
                 ->middleware('throttle:signatory-write')
                 ->name('submissions.approve');
+            Route::post('events/{event}/submissions/{submission}/return', [SignatorySubmissionController::class, 'returnForRevision'])
+                ->middleware('throttle:signatory-write')
+                ->name('submissions.return');
             Route::post('events/{event}/submissions/{submission}/deny', [SignatorySubmissionController::class, 'deny'])
                 ->middleware('throttle:signatory-write')
                 ->name('submissions.deny');
-            Route::get('appeals', [SignatoryAppealController::class, 'index'])->name('appeals.index');
-            Route::post('events/{event}/submissions/{submission}/appeals/{appeal}/resolve', [SignatoryAppealController::class, 'resolve'])
-                ->middleware('throttle:signatory-write')
-                ->name('appeals.resolve');
         });
 
     Route::middleware(['cognito.jwt:admin', 'throttle:admin'])
@@ -75,7 +66,6 @@ Route::prefix('v1')->name('v1.')->group(function (): void {
             Route::get('submissions', [AdminSubmissionController::class, 'index'])->name('submissions.index');
             Route::get('events/{event}/submissions/{submission}', [AdminSubmissionController::class, 'show'])
                 ->name('submissions.show');
-            Route::get('appeals', [AdminAppealController::class, 'index'])->name('appeals.index');
             Route::get('announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
             Route::post('announcements', [AnnouncementController::class, 'store'])
                 ->middleware('throttle:admin-write')
