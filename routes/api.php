@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\AnnouncementController;
 use App\Http\Controllers\Api\V1\Admin\AppealController as AdminAppealController;
 use App\Http\Controllers\Api\V1\Admin\OrganizationController;
 use App\Http\Controllers\Api\V1\Admin\SignatoryController;
@@ -73,6 +74,21 @@ Route::prefix('v1')->name('v1.')->group(function (): void {
             Route::get('events/{event}/submissions/{submission}', [AdminSubmissionController::class, 'show'])
                 ->name('submissions.show');
             Route::get('appeals', [AdminAppealController::class, 'index'])->name('appeals.index');
+            Route::get('announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
+            Route::post('announcements', [AnnouncementController::class, 'store'])
+                ->middleware('throttle:admin-write')
+                ->name('announcements.store');
+            Route::get('announcements/{announcement}', [AnnouncementController::class, 'show'])
+                ->where('announcement', '[^/]+')
+                ->name('announcements.show');
+            Route::put('announcements/{announcement}', [AnnouncementController::class, 'update'])
+                ->middleware('throttle:admin-write')
+                ->where('announcement', '[^/]+')
+                ->name('announcements.update');
+            Route::delete('announcements/{announcement}', [AnnouncementController::class, 'destroy'])
+                ->middleware('throttle:admin-write')
+                ->where('announcement', '[^/]+')
+                ->name('announcements.destroy');
             Route::get('organizations', [OrganizationController::class, 'index'])->name('organizations.index');
             Route::post('organizations', [OrganizationController::class, 'store'])
                 ->middleware('throttle:admin-write')

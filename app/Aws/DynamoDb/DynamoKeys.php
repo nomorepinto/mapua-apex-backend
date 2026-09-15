@@ -41,6 +41,11 @@ final class DynamoKeys
         return 'DEADLINE#'.self::strip($id, 'DEADLINE#');
     }
 
+    public static function announcement(): string
+    {
+        return 'ANNOUNCEMENT';
+    }
+
     public static function roleIndex(string $role, ?string $department = null): string
     {
         $key = 'ROLE#'.Str::upper($role);

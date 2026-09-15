@@ -75,6 +75,18 @@ final class DynamoFixtures
         self::organization($db, $org, is_string($organization['name'] ?? null) ? $organization['name'] : 'Mapua Computing Society', $next);
     }
 
+    public static function announcement(
+        InMemoryDynamoDb $db,
+        string $sentAt = '2026-09-15T08:00:00Z',
+        string $content = 'OSAAR office hours are 9:00–17:00.',
+    ): void {
+        $db->seed([
+            'PK' => 'ANNOUNCEMENT',
+            'SK' => $sentAt,
+            'content' => $content,
+        ]);
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      */

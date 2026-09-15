@@ -34,6 +34,7 @@ final class InMemoryDynamoDb
         $mock->shouldReceive('query')->andReturnUsing($this->query(...));
         $mock->shouldReceive('scan')->andReturnUsing($this->scan(...));
         $mock->shouldReceive('updateItem')->andReturnUsing($this->updateItem(...));
+        $mock->shouldReceive('deleteItem')->andReturnUsing($this->deleteItem(...));
     }
 
     /**
@@ -175,6 +176,19 @@ final class InMemoryDynamoDb
         }
 
         $this->table[$key] = $item;
+
+        return [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $args
+     * @return array{}
+     */
+    private function deleteItem(array $args): array
+    {
+        $pk = $args['Key']['PK']['S'] ?? '';
+        $sk = $args['Key']['SK']['S'] ?? '';
+        unset($this->table[$this->key($pk, $sk)]);
 
         return [];
     }

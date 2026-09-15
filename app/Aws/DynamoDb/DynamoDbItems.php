@@ -164,6 +164,17 @@ final class DynamoDbItems
         $this->dynamo->updateItem($params);
     }
 
+    public function delete(string $pk, string $sk): void
+    {
+        $this->dynamo->deleteItem([
+            'TableName' => $this->table(),
+            'Key' => $this->marshaller->marshal([
+                'PK' => $pk,
+                'SK' => $sk,
+            ]),
+        ]);
+    }
+
     public function marshaller(): ItemMarshaller
     {
         return $this->marshaller;
