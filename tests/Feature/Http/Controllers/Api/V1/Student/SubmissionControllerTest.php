@@ -194,6 +194,18 @@ class SubmissionControllerTest extends TestCase
         $this->assertSame('SIGNATORY#adv001', $stored['GSI2PK'] ?? null);
     }
 
+    public function test_creates_a_submission_when_osaar_and_cdm_are_only_in_env(): void
+    {
+        $db = InMemoryDynamoDb::bind($this);
+        DynamoFixtures::event($db);
+        DynamoFixtures::signatory($db, 'adv001', 'adviser');
+
+        $response = $this->withStudentAuth()->postJson('/api/v1/students/submissions', SaafPayload::valid());
+
+        $response->assertCreated()
+            ->assertJsonPath('data.current_signatory', 'adv001');
+    }
+
     public function test_updates_a_returned_submission_and_keeps_it_on_the_same_desk(): void
     {
         $db = InMemoryDynamoDb::bind($this);

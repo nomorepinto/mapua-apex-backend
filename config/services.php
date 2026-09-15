@@ -36,6 +36,15 @@ return [
         ],
     ],
 
+    /*
+    | Campus-wide desks. There is one OSAAR and one CDM; change the person's
+    | name in place (PUT /signatories) rather than minting a new uuid.
+    */
+    'signatories' => [
+        'osaar_id' => env('OSAAR_SIGNATORY_ID', ''),
+        'cdm_id' => env('CDM_SIGNATORY_ID', ''),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

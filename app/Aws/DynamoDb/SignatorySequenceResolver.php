@@ -43,7 +43,11 @@ final class SignatorySequenceResolver
             $signatoryId = $this->findSignatoryByRole->handle($organizationId, $role);
 
             if ($signatoryId === null) {
-                throw new UnresolvableSignatoryRoute("No {$role} signatory is assigned for this organization.");
+                throw new UnresolvableSignatoryRoute(
+                    in_array($role, ['osaar', 'cdm'], true)
+                        ? "No {$role} signatory is configured."
+                        : "No {$role} signatory is assigned for this organization."
+                );
             }
 
             $ids[] = $signatoryId;
