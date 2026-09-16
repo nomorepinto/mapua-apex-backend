@@ -51,10 +51,27 @@ class AuthenticateCognitoJwt
         }
 
         $groups = $this->groups($claims['cognito:groups'] ?? null);
-        $isAdmin = in_array('admin', $groups, true);
+        $normalizedGroups = array_map('strtolower', $groups);
+        $isAdmin = in_array('admin', $normalizedGroups, true);
 
         if (is_string($role) && $role !== '') {
-            if (! in_array($role, $groups, true) && ! $isAdmin) {
+            $requiredRole = strtolower($role);
+            $roleGroups = match ($requiredRole) {
+                'student' => ['student', 'students', 'org_submitter'],
+                'signatory' => ['signatory', 'signatories', 'org_adviser', 'dean', 'osaar', 'cdm_reviewer', 'cdm'],
+                'admin' => ['admin', 'osaar'],
+                default => [$requiredRole],
+            };
+
+            $hasGroup = false;
+            foreach ($roleGroups as $rg) {
+                if (in_array($rg, $normalizedGroups, true)) {
+                    $hasGroup = true;
+                    break;
+                }
+            }
+
+            if (! $hasGroup && ! $isAdmin) {
                 $this->reject(
                     $request,
                     $role,
