@@ -18,6 +18,7 @@ final class ListOrgSubmissions
     public function handle(string $organizationId, int $eventLimit = self::EVENT_LIMIT): array
     {
         $submissions = [];
+        $seenEvents = [];
 
         foreach ($this->eventsForOrganization($organizationId, $eventLimit) as $event) {
             $eventPk = $event['PK'] ?? null;
@@ -25,6 +26,12 @@ final class ListOrgSubmissions
             if (! is_string($eventPk) || ! str_starts_with($eventPk, 'EVENT#')) {
                 continue;
             }
+
+            if (isset($seenEvents[$eventPk])) {
+                continue;
+            }
+
+            $seenEvents[$eventPk] = true;
 
             foreach ($this->submissionsForEvent($eventPk) as $item) {
                 $submissions[] = $item;
