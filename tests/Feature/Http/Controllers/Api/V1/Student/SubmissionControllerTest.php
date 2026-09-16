@@ -15,22 +15,9 @@ class SubmissionControllerTest extends TestCase
         InMemoryDynamoDb::bind($this);
     }
 
-    public function test_returns_401_when_api_key_is_missing(): void
+    public function test_returns_401_when_signatory_jwt_is_used(): void
     {
-        $this->fakeCognitoJwt();
-
-        $response = $this->withToken('fake-jwt')->getJson('/api/v1/students/submissions');
-
-        $response->assertUnauthorized();
-    }
-
-    public function test_returns_401_when_signatory_key_is_used(): void
-    {
-        $this->fakeCognitoJwt();
-
-        $response = $this->withApiKey('signatory')
-            ->withToken('fake-jwt')
-            ->getJson('/api/v1/students/submissions');
+        $response = $this->withSignatoryAuth()->getJson('/api/v1/students/submissions');
 
         $response->assertUnauthorized();
     }
@@ -86,7 +73,7 @@ class SubmissionControllerTest extends TestCase
     {
         $this->fakeCognitoJwt();
 
-        $response = $this->withApiKey()->getJson('/api/v1/students/submissions');
+        $response = $this->getJson('/api/v1/students/submissions');
 
         $response->assertUnauthorized();
     }

@@ -14,7 +14,7 @@ class AuthenticateCognitoJwtTest extends TestCase
     {
         parent::setUp();
 
-        Route::middleware(['api.token:student', 'cognito.jwt:student'])
+        Route::middleware(['cognito.jwt:student'])
             ->get('/api/_test/cognito', function (Request $request) {
                 return [
                     'organization_id' => $request->attributes->get('cognito.organization_id'),
@@ -27,7 +27,7 @@ class AuthenticateCognitoJwtTest extends TestCase
     {
         $this->fakeCognitoJwt();
 
-        $response = $this->withApiKey()->getJson('/api/_test/cognito');
+        $response = $this->getJson('/api/_test/cognito');
 
         $response->assertUnauthorized()
             ->assertJsonPath('message', 'Unauthenticated: Bearer token is missing.');
@@ -37,8 +37,7 @@ class AuthenticateCognitoJwtTest extends TestCase
     {
         $this->fakeCognitoJwt(shouldFail: true);
 
-        $response = $this->withApiKey()
-            ->withToken('invalid-jwt')
+        $response = $this->withToken('invalid-jwt')
             ->getJson('/api/_test/cognito');
 
         $response->assertUnauthorized()
@@ -52,8 +51,7 @@ class AuthenticateCognitoJwtTest extends TestCase
             'cognito:groups' => ['student'],
         ]));
 
-        $response = $this->withApiKey()
-            ->withToken('fake-jwt')
+        $response = $this->withToken('fake-jwt')
             ->getJson('/api/_test/cognito');
 
         $response->assertUnauthorized()
@@ -66,8 +64,7 @@ class AuthenticateCognitoJwtTest extends TestCase
             'cognito:groups' => ['signatory'],
         ]);
 
-        $response = $this->withApiKey()
-            ->withToken('fake-jwt')
+        $response = $this->withToken('fake-jwt')
             ->getJson('/api/_test/cognito');
 
         $response->assertUnauthorized()
@@ -81,8 +78,7 @@ class AuthenticateCognitoJwtTest extends TestCase
             'custom:organization_id' => '',
         ]);
 
-        $response = $this->withApiKey('admin')
-            ->withToken('fake-jwt')
+        $response = $this->withToken('fake-jwt')
             ->getJson('/api/_test/cognito');
 
         $response->assertOk();
@@ -92,8 +88,7 @@ class AuthenticateCognitoJwtTest extends TestCase
     {
         $this->fakeCognitoJwt(jwksUnavailable: true);
 
-        $response = $this->withApiKey()
-            ->withToken('fake-jwt')
+        $response = $this->withToken('fake-jwt')
             ->getJson('/api/_test/cognito');
 
         $response->assertStatus(503);
@@ -106,8 +101,7 @@ class AuthenticateCognitoJwtTest extends TestCase
             'custom:signatory_id' => 'SIGNATORY#adv001',
         ]);
 
-        $response = $this->withApiKey()
-            ->withToken('fake-jwt')
+        $response = $this->withToken('fake-jwt')
             ->getJson('/api/_test/cognito');
 
         $response->assertOk()
@@ -124,8 +118,7 @@ class AuthenticateCognitoJwtTest extends TestCase
             'signatory_id' => 'SIGNATORY#adv001',
         ]);
 
-        $response = $this->withApiKey()
-            ->withToken('fake-jwt')
+        $response = $this->withToken('fake-jwt')
             ->getJson('/api/_test/cognito');
 
         $response->assertOk()

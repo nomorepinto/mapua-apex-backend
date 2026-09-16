@@ -24,15 +24,18 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $limitByCaller = function (Request $request): Limit {
+        $callerKey = function (Request $request): string {
             $token = $request->bearerToken();
-            $apiKey = $request->header('X-Api-Key');
 
-            $key = is_string($token) && $token !== ''
-                ? hash('sha256', $token)
-                : (is_string($apiKey) && $apiKey !== '' ? hash('sha256', $apiKey) : $request->ip());
+            if (is_string($token) && $token !== '') {
+                return hash('sha256', $token);
+            }
 
-            return Limit::perMinute(60)->by($key);
+            return (string) $request->ip();
+        };
+
+        $limitByCaller = function (Request $request) use ($callerKey): Limit {
+            return Limit::perMinute(60)->by($callerKey($request));
         };
 
         RateLimiter::for('api', $limitByCaller);
@@ -40,15 +43,8 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('signatory', $limitByCaller);
         RateLimiter::for('admin', $limitByCaller);
 
-        $writeLimit = function (Request $request): Limit {
-            $token = $request->bearerToken();
-            $apiKey = $request->header('X-Api-Key');
-
-            $key = is_string($token) && $token !== ''
-                ? hash('sha256', $token)
-                : (is_string($apiKey) && $apiKey !== '' ? hash('sha256', $apiKey) : $request->ip());
-
-            return Limit::perMinute(10)->by($key);
+        $writeLimit = function (Request $request) use ($callerKey): Limit {
+            return Limit::perMinute(10)->by($callerKey($request));
         };
 
         RateLimiter::for('student-write', $writeLimit);

@@ -24,13 +24,6 @@ abstract class TestCase extends BaseTestCase
         return $verifier;
     }
 
-    protected function withApiKey(string $role = 'student'): static
-    {
-        return $this->withHeaders([
-            'X-Api-Key' => (string) config('services.api.tokens.'.$role),
-        ]);
-    }
-
     /**
      * @param  array<string, mixed>  $claims
      */
@@ -38,10 +31,7 @@ abstract class TestCase extends BaseTestCase
     {
         $this->fakeCognitoJwt($claims);
 
-        return $this->withHeaders([
-            'X-Api-Key' => (string) config('services.api.tokens.student'),
-            'Authorization' => 'Bearer '.$jwt,
-        ]);
+        return $this->withToken($jwt);
     }
 
     /**
@@ -54,10 +44,7 @@ abstract class TestCase extends BaseTestCase
             'custom:signatory_id' => 'adv001',
         ], $claims));
 
-        return $this->withHeaders([
-            'X-Api-Key' => (string) config('services.api.tokens.signatory'),
-            'Authorization' => 'Bearer '.$jwt,
-        ]);
+        return $this->withToken($jwt);
     }
 
     /**
@@ -70,10 +57,7 @@ abstract class TestCase extends BaseTestCase
             'custom:organization_id' => '',
         ], $claims));
 
-        return $this->withHeaders([
-            'X-Api-Key' => (string) config('services.api.tokens.admin'),
-            'Authorization' => 'Bearer '.$jwt,
-        ]);
+        return $this->withToken($jwt);
     }
 
     public function swapDynamoDbClient(DynamoDbClient|MockInterface $client): void

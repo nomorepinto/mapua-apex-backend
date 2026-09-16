@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Middleware\AuthenticateApiToken;
 use App\Http\Middleware\AuthenticateCognitoJwt;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -18,7 +17,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(PrefersJsonResponses::class);
         $middleware->throttleApi();
         $middleware->alias([
-            'api.token' => AuthenticateApiToken::class,
             'cognito.jwt' => AuthenticateCognitoJwt::class,
         ]);
     })

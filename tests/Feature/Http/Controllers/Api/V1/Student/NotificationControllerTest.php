@@ -12,7 +12,7 @@ class NotificationControllerTest extends TestCase
     {
         $this->fakeCognitoJwt();
 
-        $response = $this->withApiKey()->getJson('/api/v1/students/events/e001/submissions/s001/notifications');
+        $response = $this->getJson('/api/v1/students/events/e001/submissions/s001/notifications');
 
         $response->assertUnauthorized();
     }

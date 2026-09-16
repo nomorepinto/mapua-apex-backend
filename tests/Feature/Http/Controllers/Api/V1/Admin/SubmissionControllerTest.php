@@ -8,16 +8,9 @@ use Tests\TestCase;
 
 class SubmissionControllerTest extends TestCase
 {
-    public function test_returns_401_when_student_key_is_used(): void
+    public function test_returns_401_when_student_jwt_is_used(): void
     {
-        $this->fakeCognitoJwt([
-            'cognito:groups' => ['admin'],
-            'custom:organization_id' => '',
-        ]);
-
-        $response = $this->withApiKey('student')
-            ->withToken('fake-jwt')
-            ->getJson('/api/v1/admins/submissions');
+        $response = $this->withStudentAuth()->getJson('/api/v1/admins/submissions');
 
         $response->assertUnauthorized();
     }

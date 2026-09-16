@@ -8,27 +8,21 @@ use Tests\TestCase;
 
 class SubmissionControllerTest extends TestCase
 {
-    public function test_returns_401_when_student_key_is_used(): void
+    public function test_returns_401_when_student_jwt_is_used(): void
     {
-        $this->fakeCognitoJwt([
-            'cognito:groups' => ['signatory'],
-            'custom:signatory_id' => 'adv001',
-        ]);
-
-        $response = $this->withApiKey('student')
-            ->withToken('fake-jwt')
-            ->getJson('/api/v1/signatories/submissions');
+        $response = $this->withStudentAuth()->getJson('/api/v1/signatories/submissions');
 
         $response->assertUnauthorized();
     }
 
-    public function test_returns_401_when_admin_omits_signatory(): void
+    public function test_defaults_to_campus_desk_when_admin_omits_signatory(): void
     {
         InMemoryDynamoDb::bind($this);
 
         $response = $this->withAdminAuth()->getJson('/api/v1/signatories/submissions');
 
-        $response->assertUnauthorized();
+        $response->assertOk()
+            ->assertExactJson(['data' => []]);
     }
 
     public function test_lists_the_queue_when_admin_sends_a_signatory_header(): void

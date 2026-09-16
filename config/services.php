@@ -28,14 +28,6 @@ return [
         'region' => env('AWS_SES_REGION', env('AWS_DEFAULT_REGION', 'us-east-1')),
     ],
 
-    'api' => [
-        'tokens' => [
-            'student' => env('API_TOKEN_STUDENT', ''),
-            'signatory' => env('API_TOKEN_SIGNATORY', ''),
-            'admin' => env('API_TOKEN_ADMIN', ''),
-        ],
-    ],
-
     /*
     | Campus-wide desks. There is one OSAAR and one CDM; change the person's
     | name in place (PUT /signatories) rather than minting a new uuid.
