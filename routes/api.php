@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Admin\AnnouncementController;
 use App\Http\Controllers\Api\V1\Admin\OrganizationController;
 use App\Http\Controllers\Api\V1\Admin\SignatoryController;
 use App\Http\Controllers\Api\V1\Admin\SubmissionController as AdminSubmissionController;
+use App\Http\Controllers\Api\V1\Signatory\NotificationController as SignatoryNotificationController;
 use App\Http\Controllers\Api\V1\Signatory\ProfileController as SignatoryProfileController;
 use App\Http\Controllers\Api\V1\Signatory\SubmissionController as SignatorySubmissionController;
 use App\Http\Controllers\Api\V1\Student\AnnouncementController as StudentAnnouncementController;
@@ -35,6 +36,13 @@ Route::prefix('v1')->name('v1.')->group(function (): void {
                 ->name('submissions.update');
             Route::get('events/{event}/submissions/{submission}/notifications', [NotificationController::class, 'index'])
                 ->name('submissions.notifications.index');
+            Route::post('events/{event}/submissions/{submission}/notifications', [NotificationController::class, 'store'])
+                ->middleware('throttle:student-write')
+                ->name('submissions.notifications.store');
+            Route::put('events/{event}/submissions/{submission}/notifications/{notification}', [NotificationController::class, 'update'])
+                ->middleware('throttle:student-write')
+                ->where('notification', '[^/]+')
+                ->name('submissions.notifications.update');
             Route::get('deadlines', [DeadlineController::class, 'index'])->name('deadlines.index');
             Route::get('announcements', [StudentAnnouncementController::class, 'index'])->name('announcements.index');
             Route::get('organization', [StudentOrganizationController::class, 'show'])->name('organization.show');
@@ -57,6 +65,13 @@ Route::prefix('v1')->name('v1.')->group(function (): void {
             Route::post('events/{event}/submissions/{submission}/deny', [SignatorySubmissionController::class, 'deny'])
                 ->middleware('throttle:signatory-write')
                 ->name('submissions.deny');
+            Route::post('events/{event}/submissions/{submission}/notifications', [SignatoryNotificationController::class, 'store'])
+                ->middleware('throttle:signatory-write')
+                ->name('submissions.notifications.store');
+            Route::put('events/{event}/submissions/{submission}/notifications/{notification}', [SignatoryNotificationController::class, 'update'])
+                ->middleware('throttle:signatory-write')
+                ->where('notification', '[^/]+')
+                ->name('submissions.notifications.update');
         });
 
     Route::middleware(['cognito.jwt:admin', 'throttle:admin'])

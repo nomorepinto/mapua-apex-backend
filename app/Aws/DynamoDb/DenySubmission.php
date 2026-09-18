@@ -7,6 +7,7 @@ final class DenySubmission
     public function __construct(
         private DynamoDbItems $items,
         private GetSubmission $submissions,
+        private NotificationRecords $notifications,
     ) {}
 
     /**
@@ -19,15 +20,7 @@ final class DenySubmission
         $submission = $this->submissions->require($eventId, $submissionId);
         SignatoryDesk::requireOpen($submission, $signatoryId);
 
-        $now = DynamoKeys::now();
-
-        $this->items->put([
-            'PK' => DynamoKeys::submission($submissionId),
-            'SK' => DynamoKeys::notification($now),
-            'signatory' => DynamoKeys::signatory($signatoryId),
-            'notif_type' => 'denied',
-            'comment' => $comment,
-        ]);
+        $this->notifications->create($submissionId, $signatoryId, 'denied', $comment);
 
         $this->items->patch(
             DynamoKeys::event($eventId),

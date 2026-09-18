@@ -9,6 +9,7 @@ final class ApproveSubmission
         private GetSubmission $submissions,
         private SignatorySequenceResolver $sequence,
         private GetEvent $events,
+        private NotificationRecords $notifications,
     ) {}
 
     /**
@@ -37,13 +38,12 @@ final class ApproveSubmission
         $now = DynamoKeys::now();
         $fullyApproved = $nextId === null;
 
-        $this->items->put([
-            'PK' => DynamoKeys::submission($submissionId),
-            'SK' => DynamoKeys::notification($now),
-            'signatory' => DynamoKeys::signatory($signatoryId),
-            'notif_type' => $fullyApproved ? 'fully approved' : 'approved',
-            'comment' => '',
-        ]);
+        $this->notifications->create(
+            $submissionId,
+            $signatoryId,
+            $fullyApproved ? 'fully approved' : 'approved',
+            sentAt: $now,
+        );
 
         if ($fullyApproved) {
             $this->items->patch(

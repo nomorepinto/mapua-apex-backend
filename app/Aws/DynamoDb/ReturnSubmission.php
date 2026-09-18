@@ -7,6 +7,7 @@ final class ReturnSubmission
     public function __construct(
         private DynamoDbItems $items,
         private GetSubmission $submissions,
+        private NotificationRecords $notifications,
     ) {}
 
     /**
@@ -19,15 +20,7 @@ final class ReturnSubmission
         $submission = $this->submissions->require($eventId, $submissionId);
         SignatoryDesk::requireOpen($submission, $signatoryId);
 
-        $now = DynamoKeys::now();
-
-        $this->items->put([
-            'PK' => DynamoKeys::submission($submissionId),
-            'SK' => DynamoKeys::notification($now),
-            'signatory' => DynamoKeys::signatory($signatoryId),
-            'notif_type' => 'returned',
-            'comment' => $comment,
-        ]);
+        $this->notifications->create($submissionId, $signatoryId, 'returned', $comment);
 
         $this->items->patch(
             DynamoKeys::event($eventId),
